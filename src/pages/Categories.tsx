@@ -9,6 +9,15 @@ import toast, { Toaster } from 'react-hot-toast';
 
 const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
+// Helper to generate slug from title
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+
 export const Categories: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,7 +25,7 @@ export const Categories: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
 
-  // Redirect if not logged in
+  // Fetch categories on mount
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       toast.error('Please login first');
@@ -35,9 +44,7 @@ export const Categories: React.FC = () => {
           ...AuthService.getAuthHeaders(),
         },
       });
-
       const data = await response.json();
-
       if (response.ok) {
         setCategories(Array.isArray(data) ? data : data.categories || []);
       } else {
@@ -99,19 +106,25 @@ export const Categories: React.FC = () => {
       return;
     }
 
-    try {
-      const url = editingCategory
-        ? `${API_BASE_URL}/categories/${editingCategory._id}`
-        : `${API_BASE_URL}/categories`;
-      const method = editingCategory ? 'PUT' : 'POST';
+    // Generate slug from title
+    const payload = {
+      ...formData,
+      slug: slugify(formData.title)
+    };
 
+    const url = editingCategory
+      ? `${API_BASE_URL}/categories/${editingCategory._id}`
+      : `${API_BASE_URL}/categories`;
+    const method = editingCategory ? 'PUT' : 'POST';
+
+    try {
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           ...AuthService.getAuthHeaders(),
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
