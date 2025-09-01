@@ -10,6 +10,7 @@ const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
 export const Categories: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
@@ -20,6 +21,7 @@ export const Categories: React.FC = () => {
   }, []);
 
   const fetchCategories = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/categories`, {
         headers: AuthService.getAuthHeaders(),
@@ -29,6 +31,8 @@ export const Categories: React.FC = () => {
       else console.error('Failed to fetch categories:', data);
     } catch (error) {
       console.error('Network error fetching categories:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -104,37 +108,43 @@ export const Categories: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm">
-        <Table headers={['ID', 'Category Name', 'Description', 'Actions']}>
-          {categories.map((category) => (
-            <tr key={category._id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {category._id}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {category.title}
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-600">
-                {category.description}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleEdit(category)}
-                    className="text-blue-600 hover:text-blue-900 transition-colors"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(category._id)}
-                    className="text-red-600 hover:text-red-900 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </Table>
+        {isLoading ? (
+          <p className="p-6 text-gray-500">Loading categories...</p>
+        ) : categories.length === 0 ? (
+          <p className="p-6 text-gray-500">No categories found.</p>
+        ) : (
+          <Table headers={['ID', 'Category Name', 'Description', 'Actions']}>
+            {categories.map((category) => (
+              <tr key={category._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {category._id}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {category.title}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {category.description}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleEdit(category)}
+                      className="text-blue-600 hover:text-blue-900 transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(category._id)}
+                      className="text-red-600 hover:text-red-900 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
       </div>
 
       <Modal
