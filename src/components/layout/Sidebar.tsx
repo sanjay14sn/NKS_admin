@@ -18,8 +18,9 @@ const Sidebar: React.FC = () => {
     <div className="w-64 bg-white h-full shadow-md flex flex-col">
       {/* Brand */}
       <div className="p-4 border-b">
-        <h1 className="text-xl font-bold text-gray-800">CatDash™</h1>
-        <p className="text-xs text-gray-500">Cat Company • 12 Members</p>
+        <h1 className="text-xl font-bold text-gray-800">NKS Traders
+        </h1>
+        <p className="text-xs text-gray-500">Nks•Members</p>
       </div>
 
       {/* Main Menu */}
