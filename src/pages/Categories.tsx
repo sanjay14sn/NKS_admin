@@ -20,21 +20,30 @@ export const Categories: React.FC = () => {
     fetchCategories();
   }, []);
 
-  const fetchCategories = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/categories`, {
-        headers: AuthService.getAuthHeaders(),
-      });
-      const data = await response.json();
-      if (response.ok) setCategories(data);
-      else console.error('Failed to fetch categories:', data);
-    } catch (error) {
-      console.error('Network error fetching categories:', error);
-    } finally {
-      setIsLoading(false);
+const fetchCategories = async () => {
+  setIsLoading(true);
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      headers: AuthService.getAuthHeaders(),
+    });
+    const data = await response.json();
+
+    if (response.ok) {
+      // Check if categories are nested
+      const categoriesArray = Array.isArray(data) ? data : data.categories;
+      setCategories(categoriesArray || []);
+    } else {
+      console.error('Failed to fetch categories:', data);
+      setCategories([]);
     }
-  };
+  } catch (error) {
+    console.error('Network error fetching categories:', error);
+    setCategories([]);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleAdd = () => {
     setEditingCategory(null);
