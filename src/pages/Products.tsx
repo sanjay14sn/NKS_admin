@@ -15,11 +15,21 @@ export const Products: React.FC = () => {
     retailerPrice: '',
     category: '',
     image: '',
+    description: '',
+    aboutProduct: '',
   });
 
   const handleAdd = () => {
     setEditingProduct(null);
-    setFormData({ name: '', price: '', retailerPrice: '', category: '', image: '' });
+    setFormData({
+      name: '',
+      price: '',
+      retailerPrice: '',
+      category: '',
+      image: '',
+      description: '',
+      aboutProduct: '',
+    });
     setIsModalOpen(true);
   };
 
@@ -31,6 +41,8 @@ export const Products: React.FC = () => {
       retailerPrice: product.retailerPrice.toString(),
       category: product.category,
       image: '',
+      description: product.description || '',
+      aboutProduct: product.aboutProduct || '',
     });
     setIsModalOpen(true);
   };
@@ -40,7 +52,15 @@ export const Products: React.FC = () => {
     // Dummy form submission
     console.log('Product saved:', formData);
     setIsModalOpen(false);
-    setFormData({ name: '', price: '', retailerPrice: '', category: '', image: '' });
+    setFormData({
+      name: '',
+      price: '',
+      retailerPrice: '',
+      category: '',
+      image: '',
+      description: '',
+      aboutProduct: '',
+    });
   };
 
   return (
@@ -60,27 +80,14 @@ export const Products: React.FC = () => {
         <Table headers={['ID', 'Product Name', 'Regular Price', 'Retailer Price', 'Category', 'Actions']}>
           {products.map((product) => (
             <tr key={product.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {product.id}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {product.name}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${product.price}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
-                ${product.retailerPrice}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                {product.category}
-              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.id}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.price}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">${product.retailerPrice}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{product.category}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="text-blue-600 hover:text-blue-900 transition-colors"
-                  >
+                  <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-900 transition-colors">
                     <Edit className="h-4 w-4" />
                   </button>
                   <button className="text-red-600 hover:text-red-900 transition-colors">
@@ -122,9 +129,7 @@ export const Products: React.FC = () => {
             required
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -140,25 +145,29 @@ export const Products: React.FC = () => {
             </select>
           </div>
           <Input
+            label="Description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          />
+          <Input
+            label="About Product"
+            value={formData.aboutProduct}
+            onChange={(e) => setFormData({ ...formData, aboutProduct: e.target.value })}
+          />
+          <Input
             label="Product Image"
             type="file"
             accept="image/*"
             onChange={(e) => setFormData({ ...formData, image: e.target.value })}
           />
           <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              variant="secondary"
-              onClick={() => setIsModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">
-              {editingProduct ? 'Update' : 'Create'}
-            </Button>
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button type="submit">{editingProduct ? 'Update' : 'Create'}</Button>
           </div>
         </form>
       </Modal>
     </div>
   );
 };
+
 export default Products;
