@@ -18,7 +18,7 @@ const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
 
       {/* Logo / Brand */}
       <div className="text-xl font-bold">
-        <Link to="/">MyShop</Link>
+        <Link to="/">NKS</Link>
       </div>
 
       {/* Navigation Links */}
