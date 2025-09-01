@@ -1,11 +1,22 @@
 // src/components/layout/Sidebar.tsx
 import React from "react";
-import { LayoutDashboard, Boxes, ShoppingBag, Users } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Boxes,
+  ShoppingBag,
+  Package,
+} from "lucide-react";
 
 const Sidebar: React.FC = () => {
+  const linkClass =
+    "flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600";
+
+  const activeClass = "bg-blue-100 text-blue-600 font-medium";
+
   return (
     <div className="w-64 bg-white h-full shadow-md flex flex-col">
-      {/* Brand / App Name */}
+      {/* Brand */}
       <div className="p-4 border-b">
         <h1 className="text-xl font-bold text-gray-800">CatDash™</h1>
         <p className="text-xs text-gray-500">Cat Company • 12 Members</p>
@@ -18,41 +29,49 @@ const Sidebar: React.FC = () => {
             Main Menu
           </p>
 
-          <a
-            href="/dashboard"
-            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) =>
+              `${linkClass} ${isActive ? activeClass : ""}`
+            }
           >
             <LayoutDashboard size={18} />
             <span>Dashboard</span>
-          </a>
+          </NavLink>
 
-          <a
-            href="/categories"
-            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+          <NavLink
+            to="/categories"
+            className={({ isActive }) =>
+              `${linkClass} ${isActive ? activeClass : ""}`
+            }
           >
             <Boxes size={18} />
             <span>Categories</span>
-          </a>
+          </NavLink>
 
-          <a
-            href="/products"
-            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              `${linkClass} ${isActive ? activeClass : ""}`
+            }
           >
             <ShoppingBag size={18} />
             <span>Products</span>
-          </a>
+          </NavLink>
 
-          <a
-            href="/orders"
-            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+          <NavLink
+            to="/orders"
+            className={({ isActive }) =>
+              `${linkClass} ${isActive ? activeClass : ""}`
+            }
           >
-            <Users size={18} />
+            <Package size={18} />
             <span>Orders</span>
-          </a>
+          </NavLink>
         </nav>
       </div>
 
-      {/* Departments / Categories */}
+      {/* Example Category Section */}
       <div className="p-4 border-t">
         <p className="text-xs font-semibold text-gray-400 uppercase mb-2">
           Categories
