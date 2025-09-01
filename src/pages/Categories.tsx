@@ -4,7 +4,8 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Table } from '../components/ui/Table';
 import { Modal } from '../components/ui/Modal';
-import { AuthService } from '../services/auth.ts';
+import { AuthService } from '../services/auth';
+import toast, { Toaster } from 'react-hot-toast';
 
 const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
@@ -15,35 +16,42 @@ export const Categories: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
 
-  // Fetch categories on mount
+  // Redirect if not logged in
   useEffect(() => {
+    if (!AuthService.isAuthenticated()) {
+      toast.error('Please login first');
+      window.location.href = '/login';
+      return;
+    }
     fetchCategories();
   }, []);
 
-const fetchCategories = async () => {
-  setIsLoading(true);
-  try {
-    const response = await fetch(`${API_BASE_URL}/categories`, {
-      headers: AuthService.getAuthHeaders(),
-    });
-    const data = await response.json();
+  const fetchCategories = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
+      });
 
-    if (response.ok) {
-      // Check if categories are nested
-      const categoriesArray = Array.isArray(data) ? data : data.categories;
-      setCategories(categoriesArray || []);
-    } else {
-      console.error('Failed to fetch categories:', data);
+      const data = await response.json();
+
+      if (response.ok) {
+        setCategories(Array.isArray(data) ? data : data.categories || []);
+      } else {
+        toast.error(data.error || 'Failed to fetch categories');
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Network error fetching categories');
       setCategories([]);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Network error fetching categories:', error);
-    setCategories([]);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   const handleAdd = () => {
     setEditingCategory(null);
@@ -63,17 +71,33 @@ const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
         method: 'DELETE',
-        headers: AuthService.getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
       });
-      if (response.ok) fetchCategories();
-      else console.error('Failed to delete category');
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Category deleted successfully');
+        fetchCategories();
+      } else {
+        toast.error(data.error || 'Failed to delete category');
+      }
     } catch (error) {
-      console.error('Network error deleting category:', error);
+      console.error(error);
+      toast.error('Network error deleting category');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
 
     try {
       const url = editingCategory
@@ -91,28 +115,31 @@ const fetchCategories = async () => {
       });
 
       const data = await response.json();
+
       if (response.ok) {
+        toast.success(`Category ${editingCategory ? 'updated' : 'created'} successfully`);
         fetchCategories();
         setIsModalOpen(false);
         setFormData({ title: '', description: '' });
       } else {
-        console.error('Error saving category:', data);
+        toast.error(data.error || 'Operation failed');
       }
     } catch (error) {
-      console.error('Network error:', error);
+      console.error(error);
+      toast.error('Network error, operation failed');
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
+      <Toaster position="top-right" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
           <p className="text-gray-600">Manage product categories</p>
         </div>
         <Button onClick={handleAdd} className="flex items-center">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Category
+          <Plus className="h-4 w-4 mr-2" /> Add Category
         </Button>
       </div>
 
@@ -122,30 +149,18 @@ const fetchCategories = async () => {
         ) : categories.length === 0 ? (
           <p className="p-6 text-gray-500">No categories found.</p>
         ) : (
-          <Table headers={['ID', 'Category Name', 'Description', 'Actions']}>
+          <Table headers={['ID', 'Title', 'Description', 'Actions']}>
             {categories.map((category) => (
               <tr key={category._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {category._id}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {category.title}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {category.description}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <td className="px-6 py-4 text-sm">{category._id}</td>
+                <td className="px-6 py-4 text-sm font-medium">{category.title}</td>
+                <td className="px-6 py-4 text-sm">{category.description}</td>
+                <td className="px-6 py-4">
                   <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEdit(category)}
-                      className="text-blue-600 hover:text-blue-900 transition-colors"
-                    >
+                    <button onClick={() => handleEdit(category)} className="text-blue-600 hover:text-blue-900">
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button
-                      onClick={() => handleDelete(category._id)}
-                      className="text-red-600 hover:text-red-900 transition-colors"
-                    >
+                    <button onClick={() => handleDelete(category._id)} className="text-red-600 hover:text-red-900">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -163,7 +178,7 @@ const fetchCategories = async () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Category Name"
+            label="Category Title"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
@@ -172,12 +187,9 @@ const fetchCategories = async () => {
             label="Description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            required
           />
           <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit">{editingCategory ? 'Update' : 'Create'}</Button>
           </div>
         </form>
