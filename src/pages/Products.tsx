@@ -31,23 +31,9 @@ export const Products: React.FC = () => {
       window.location.href = '/login';
       return;
     }
-    fetchProducts();
     fetchCategories();
+    fetchProducts();
   }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/products`, {
-        headers: AuthService.getAuthHeaders(),
-      });
-      const data = await response.json();
-      if (response.ok) setProducts(data.products || []);
-      else toast.error(data.error || 'Failed to fetch products');
-    } catch (error) {
-      console.error(error);
-      toast.error('Network error fetching products');
-    }
-  };
 
   const fetchCategories = async () => {
     try {
@@ -60,6 +46,20 @@ export const Products: React.FC = () => {
     } catch (error) {
       console.error(error);
       toast.error('Network error fetching categories');
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products`, {
+        headers: AuthService.getAuthHeaders(),
+      });
+      const data = await response.json();
+      if (response.ok) setProducts(data.products || []);
+      else toast.error(data.error || 'Failed to fetch products');
+    } catch (error) {
+      console.error(error);
+      toast.error('Network error fetching products');
     }
   };
 
@@ -99,9 +99,7 @@ export const Products: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/products/${id}`, {
         method: 'DELETE',
-        headers: {
-          ...AuthService.getAuthHeaders(),
-        },
+        headers: AuthService.getAuthHeaders(),
       });
       const data = await response.json();
       if (response.ok) {
@@ -130,27 +128,24 @@ export const Products: React.FC = () => {
 
     formData.images.forEach((file: File) => form.append('images', file));
 
-    try {
-      const url = editingProduct
-        ? `${API_BASE_URL}/products/${editingProduct._id}`
-        : `${API_BASE_URL}/products`;
-      const method = editingProduct ? 'PUT' : 'POST';
+    const url = editingProduct
+      ? `${API_BASE_URL}/products/${editingProduct._id}`
+      : `${API_BASE_URL}/products`;
+    const method = editingProduct ? 'PUT' : 'POST';
 
+    try {
       const response = await fetch(url, {
         method,
-        headers: {
-          ...AuthService.getAuthHeaders(), // Authorization header
-        },
+        headers: AuthService.getAuthHeaders(),
         body: form,
       });
-
       const data = await response.json();
       if (response.ok) {
         toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
         fetchProducts();
         setIsModalOpen(false);
       } else {
-        toast.error(data.error || 'Failed to save product');
+        toast.error(data.error || 'Operation failed');
       }
     } catch (error) {
       console.error(error);
@@ -167,8 +162,7 @@ export const Products: React.FC = () => {
           <p className="text-gray-600">Manage your product inventory</p>
         </div>
         <Button onClick={handleAdd} className="flex items-center">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
+          <Plus className="h-4 w-4 mr-2" /> Add Product
         </Button>
       </div>
 
@@ -224,7 +218,6 @@ export const Products: React.FC = () => {
           <Input label="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
           <Input label="About Product" value={formData.aboutProduct} onChange={(e) => setFormData({ ...formData, aboutProduct: e.target.value })} />
 
-          {/* Native input for multiple file upload */}
           <div>
             <label className="block text-sm font-medium mb-2">Images</label>
             <input
