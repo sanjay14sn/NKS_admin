@@ -1,85 +1,78 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { AuthService } from "../services/auth";
+
+interface User {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
 const Electricians: React.FC = () => {
-  const [search, setSearch] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const electricians = [
-    {
-      id: 1,
-      name: "Sundar Kumar",
-      company: "SK Electricals",
-      category: "Electrician",
-      mobile: "9876543210",
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Ravi K",
-      company: "Ravi Owners",
-      category: "Owner",
-      mobile: "9123456789",
-      status: "inactive",
-    },
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(
+          "https://nks-backend-mou5.onrender.com/api/auth/users",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...AuthService.getAuthHeaders(), // ✅ add token
+            },
+          }
+        );
+        const data = await response.json();
+        if (response.ok && data.users) {
+          setUsers(
+            data.users.filter(
+              (u: User) => u.role === "shopowner" || u.role === "electrician"
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching electricians:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
-  const filtered = electricians.filter(
-    (e) =>
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.company.toLowerCase().includes(search.toLowerCase())
-  );
+  if (loading) return <p>Loading electricians...</p>;
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">Electricians / Owners</h2>
-
-      {/* Search */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search by name or company..."
-          className="w-full md:w-1/3 px-3 py-2 border rounded-lg"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
-        <table className="min-w-full text-sm text-gray-700">
-          <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-            <tr>
-              <th className="px-4 py-2 text-left">S.No</th>
-              <th className="px-4 py-2 text-left">Name</th>
-              <th className="px-4 py-2 text-left">Company</th>
-              <th className="px-4 py-2 text-left">Category</th>
-              <th className="px-4 py-2 text-left">Mobile</th>
-              <th className="px-4 py-2 text-left">Status</th>
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Electricians / Owners</h2>
+      <table className="w-full border">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2 border">S.No</th>
+            <th className="p-2 border">Name</th>
+            <th className="p-2 border">Phone</th>
+            <th className="p-2 border">Role</th>
+            <th className="p-2 border">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user, idx) => (
+            <tr key={user._id}>
+              <td className="p-2 border">{idx + 1}</td>
+              <td className="p-2 border">{user.name}</td>
+              <td className="p-2 border">{user.phone || "N/A"}</td>
+              <td className="p-2 border capitalize">{user.role}</td>
+              <td className="p-2 border">
+                {user.isActive ? "Active ✅" : "Inactive ❌"}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {filtered.map((e, idx) => (
-              <tr key={e.id} className="border-t hover:bg-gray-50 transition">
-                <td className="px-4 py-2">{idx + 1}</td>
-                <td className="px-4 py-2">{e.name}</td>
-                <td className="px-4 py-2">{e.company}</td>
-                <td className="px-4 py-2">{e.category}</td>
-                <td className="px-4 py-2">{e.mobile}</td>
-                <td className="px-4 py-2">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      e.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {e.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
