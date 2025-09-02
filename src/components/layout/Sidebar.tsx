@@ -1,4 +1,3 @@
-// src/components/layout/Sidebar.tsx
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -6,6 +5,8 @@ import {
   Boxes,
   ShoppingBag,
   Package,
+  Users,
+  Wrench,
 } from "lucide-react";
 
 const Sidebar: React.FC = () => {
@@ -18,8 +19,7 @@ const Sidebar: React.FC = () => {
     <div className="w-64 bg-white h-full shadow-md flex flex-col">
       {/* Brand */}
       <div className="p-4 border-b">
-        <h1 className="text-xl font-bold text-gray-800">NKS Traders
-        </h1>
+        <h1 className="text-xl font-bold text-gray-800">NKS Traders</h1>
         <p className="text-xs text-gray-500">Nks•Members</p>
       </div>
 
@@ -69,32 +69,27 @@ const Sidebar: React.FC = () => {
             <Package size={18} />
             <span>Orders</span>
           </NavLink>
-        </nav>
-      </div>
 
-      {/* Example Category Section */}
-      <div className="p-4 border-t">
-        <p className="text-xs font-semibold text-gray-400 uppercase mb-2">
-          Categories
-        </p>
-        <ul className="space-y-2">
-          <li className="flex items-center space-x-2 text-sm text-gray-700">
-            <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-            <span>Food & Treats</span>
-          </li>
-          <li className="flex items-center space-x-2 text-sm text-gray-700">
-            <span className="w-3 h-3 rounded-full bg-green-500"></span>
-            <span>Toys</span>
-          </li>
-          <li className="flex items-center space-x-2 text-sm text-gray-700">
-            <span className="w-3 h-3 rounded-full bg-orange-500"></span>
-            <span>Accessories</span>
-          </li>
-          <li className="flex items-center space-x-2 text-sm text-gray-700">
-            <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-            <span>Health & Care</span>
-          </li>
-        </ul>
+          <NavLink
+            to="/users"
+            className={({ isActive }) =>
+              `${linkClass} ${isActive ? activeClass : ""}`
+            }
+          >
+            <Users size={18} />
+            <span>Users</span>
+          </NavLink>
+
+          <NavLink
+            to="/electricians"
+            className={({ isActive }) =>
+              `${linkClass} ${isActive ? activeClass : ""}`
+            }
+          >
+            <Wrench size={18} />
+            <span>Electricians/Owners</span>
+          </NavLink>
+        </nav>
       </div>
     </div>
   );

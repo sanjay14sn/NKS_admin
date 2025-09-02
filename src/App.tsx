@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
 import Products from './pages/Products';
 import Orders from './pages/Orders';
+import Users from './pages/Users';
+import Electricians from './pages/Electricians';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -49,6 +51,22 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <ProtectedRoute>
+                <Users />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="electricians"
+            element={
+              <ProtectedRoute>
+                <Electricians />
               </ProtectedRoute>
             }
           />
