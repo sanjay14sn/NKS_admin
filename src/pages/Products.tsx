@@ -37,33 +37,132 @@ export const Products: React.FC = () => {
     fetchProducts();
   }, []);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/categories`, {
-        headers: AuthService.getAuthHeaders(),
-      });
-      const data = await response.json();
-      if (response.ok) setCategories(data.categories || []);
-      else toast.error(data.error || 'Failed to fetch categories');
-    } catch (error) {
-      console.error(error);
-      toast.error('Network error fetching categories');
-    }
-  };
+const fetchCategories = async () => {
+  try {
+    console.log("📡 Fetching categories...");
+    const headers = AuthService.getAuthHeaders();
+    console.log("➡️ Headers (categories):", headers);
 
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/products`, {
-        headers: AuthService.getAuthHeaders(),
-      });
-      const data = await response.json();
-      if (response.ok) setProducts(data.products || []);
-      else toast.error(data.error || 'Failed to fetch products');
-    } catch (error) {
-      console.error(error);
-      toast.error('Network error fetching products');
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      headers,
+    });
+
+    console.log("⬅️ Response (categories):", response.status);
+    const data = await response.json();
+    console.log("⬅️ Data (categories):", data);
+
+    if (response.ok) setCategories(data.categories || []);
+    else toast.error(data.error || 'Failed to fetch categories');
+  } catch (error) {
+    console.error("❌ Error fetching categories:", error);
+    toast.error('Network error fetching categories');
+  }
+};
+
+const fetchProducts = async () => {
+  try {
+    console.log("📡 Fetching products...");
+    const headers = AuthService.getAuthHeaders();
+    console.log("➡️ Headers (products):", headers);
+
+    const response = await fetch(`${API_BASE_URL}/products`, {
+      headers,
+    });
+
+    console.log("⬅️ Response (products):", response.status);
+    const data = await response.json();
+    console.log("⬅️ Data (products):", data);
+
+    if (response.ok) setProducts(data.products || []);
+    else toast.error(data.error || 'Failed to fetch products');
+  } catch (error) {
+    console.error("❌ Error fetching products:", error);
+    toast.error('Network error fetching products');
+  }
+};
+
+const handleDelete = async (id: string) => {
+  if (!window.confirm('Are you sure you want to delete this product?')) return;
+
+  try {
+    console.log("🗑️ Deleting product:", id);
+    const headers = AuthService.getAuthHeaders();
+    console.log("➡️ Headers (delete):", headers);
+
+    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    console.log("⬅️ Response (delete):", response.status);
+    const data = await response.json();
+    console.log("⬅️ Data (delete):", data);
+
+    if (response.ok) {
+      toast.success('Product deleted successfully');
+      fetchProducts();
+    } else {
+      toast.error(data.error || 'Failed to delete product');
     }
-  };
+  } catch (error) {
+    console.error("❌ Error deleting product:", error);
+    toast.error('Network error deleting product');
+  }
+};
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const form = new FormData();
+  form.append('title', formData.title);
+  form.append('price', formData.price);
+  form.append('retailerPrice', formData.retailerPrice);
+  form.append('stock', formData.stock);
+  form.append('category', formData.category);
+  form.append('description', formData.description);
+  form.append('aboutProduct', formData.aboutProduct);
+  form.append('isFeatured', String(formData.isFeatured));
+  form.append('isTrending', String(formData.isTrending));
+  formData.images.forEach((file: File) => form.append('images', file));
+
+  const url = editingProduct
+    ? `${API_BASE_URL}/products/${editingProduct._id}`
+    : `${API_BASE_URL}/products`;
+  const method = editingProduct ? 'PUT' : 'POST';
+
+  try {
+    const headers = AuthService.getAuthHeaders();
+    console.log(`📤 ${method} product`);
+    console.log("➡️ URL:", url);
+    console.log("➡️ Headers (submit):", headers);
+    console.log("➡️ FormData entries:");
+    for (const pair of form.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: form,
+    });
+
+    console.log("⬅️ Response (submit):", response.status);
+    const data = await response.json();
+    console.log("⬅️ Data (submit):", data);
+
+    if (response.ok) {
+      toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
+      fetchProducts();
+      setIsModalOpen(false);
+    } else {
+      toast.error(data.error || 'Operation failed');
+    }
+  } catch (error) {
+    console.error("❌ Error submitting product:", error);
+    toast.error('Network error, operation failed');
+  }
+};
+
 
   const handleAdd = () => {
     setEditingProduct(null);
@@ -99,71 +198,7 @@ export const Products: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
-        method: 'DELETE',
-        headers: AuthService.getAuthHeaders(),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success('Product deleted successfully');
-        fetchProducts();
-      } else {
-        toast.error(data.error || 'Failed to delete product');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Network error deleting product');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const form = new FormData();
-    form.append('title', formData.title);
-    form.append('price', formData.price);
-    form.append('retailerPrice', formData.retailerPrice);
-    form.append('stock', formData.stock);
-    form.append('category', formData.category);
-    form.append('description', formData.description);
-    form.append('aboutProduct', formData.aboutProduct);
-    form.append('isFeatured', String(formData.isFeatured));
-    form.append('isTrending', String(formData.isTrending));
-
-    formData.images.forEach((file: File) => form.append('images', file));
-
-    const url = editingProduct
-      ? `${API_BASE_URL}/products/${editingProduct._id}`
-      : `${API_BASE_URL}/products`;
-    const method = editingProduct ? 'PUT' : 'POST';
-
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          ...AuthService.getAuthHeaders(),
-          // DO NOT set Content-Type for FormData
-        },
-        body: form,
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
-        fetchProducts();
-        setIsModalOpen(false);
-      } else {
-        toast.error(data.error || 'Operation failed');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Network error, operation failed');
-    }
-  };
 
   return (
     <div className="space-y-6 p-6">
