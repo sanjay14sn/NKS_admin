@@ -27,6 +27,7 @@ interface Product {
 export const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,6 +61,7 @@ export const Products: React.FC = () => {
     fetchProducts();
   }, []);
 
+  // ===================== Fetch Categories =====================
   const fetchCategories = async () => {
     try {
       const headers = AuthService.getAuthHeaders();
@@ -72,11 +74,14 @@ export const Products: React.FC = () => {
     }
   };
 
-  const fetchProducts = async () => {
+  // ===================== Fetch Products =====================
+  const fetchProducts = async (categoryFilter?: string) => {
     setLoading(true);
     try {
       const headers = AuthService.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/products`, { headers });
+      let url = `${API_BASE_URL}/products`;
+      if (categoryFilter) url += `?category=${categoryFilter}`;
+      const response = await fetch(url, { headers });
       const data = await response.json();
       if (response.ok) setProducts(data.products || []);
       else toast.error(data.error || 'Failed to fetch products');
@@ -87,9 +92,9 @@ export const Products: React.FC = () => {
     }
   };
 
+  // ===================== Handle Delete =====================
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
-
     try {
       const headers = AuthService.getAuthHeaders();
       const response = await fetch(`${API_BASE_URL}/products/${id}`, {
@@ -99,7 +104,7 @@ export const Products: React.FC = () => {
       const data = await response.json();
       if (response.ok) {
         toast.success('Product deleted successfully');
-        fetchProducts();
+        fetchProducts(selectedCategory);
       } else {
         toast.error(data.error || 'Failed to delete product');
       }
@@ -108,8 +113,14 @@ export const Products: React.FC = () => {
     }
   };
 
+  // ===================== Handle Add/Edit Submit =====================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.description.length < 10) {
+      toast.error('Description must be at least 10 characters');
+      return;
+    }
+
     const form = new FormData();
     form.append('title', formData.title);
     form.append('price', formData.price);
@@ -133,7 +144,7 @@ export const Products: React.FC = () => {
       const data = await response.json();
       if (response.ok) {
         toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
-        fetchProducts();
+        fetchProducts(selectedCategory);
         setIsModalOpen(false);
       } else {
         toast.error(data.error || 'Operation failed');
@@ -143,6 +154,7 @@ export const Products: React.FC = () => {
     }
   };
 
+  // ===================== Add / Edit Product =====================
   const handleAdd = () => {
     setEditingProduct(null);
     setFormData({
@@ -177,7 +189,7 @@ export const Products: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Handle file select -> open crop modal
+  // ===================== Handle Image Crop =====================
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -187,7 +199,6 @@ export const Products: React.FC = () => {
     }
   };
 
-  // Convert cropped area to File
   const getCroppedImg = async (imageSrc: string, cropPixels: any): Promise<File> => {
     const image = new Image();
     image.src = imageSrc;
@@ -230,6 +241,8 @@ export const Products: React.FC = () => {
   return (
     <div className="space-y-6 p-6">
       <Toaster position="top-right" />
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Products</h1>
@@ -240,7 +253,27 @@ export const Products: React.FC = () => {
         </Button>
       </div>
 
-      {/* ✅ Loading / Empty / Table */}
+      {/* Category Filter */}
+      <div className="mb-4">
+        <label className="mr-2 font-medium">Filter by Category:</label>
+        <select
+          value={selectedCategory}
+          onChange={(e) => {
+            setSelectedCategory(e.target.value);
+            fetchProducts(e.target.value);
+          }}
+          className="border px-3 py-2 rounded-md"
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat._id} value={cat._id}>
+              {cat.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Product Table */}
       {loading ? (
         <p className="text-gray-500">Loading products...</p>
       ) : products.length === 0 ? (
@@ -252,11 +285,7 @@ export const Products: React.FC = () => {
               <tr key={product._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
                   {product.images?.length ? (
-                    <img
-                      src={product.images[0]}
-                      alt={product.title}
-                      className="h-12 w-12 object-cover rounded"
-                    />
+                    <img src={product.images[0]} alt={product.title} className="h-12 w-12 object-cover rounded" />
                   ) : (
                     <span className="text-gray-400">No Image</span>
                   )}
@@ -284,7 +313,7 @@ export const Products: React.FC = () => {
         </div>
       )}
 
-      {/* ✅ Add/Edit Modal */}
+      {/* Add/Edit Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingProduct ? 'Edit Product' : 'Add Product'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
@@ -314,22 +343,12 @@ export const Products: React.FC = () => {
 
           <div className="flex space-x-4">
             <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.isFeatured}
-                onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-                className="h-4 w-4"
-              />
+              <input type="checkbox" checked={formData.isFeatured} onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })} className="h-4 w-4" />
               <span>Featured</span>
             </label>
 
             <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.isTrending}
-                onChange={(e) => setFormData({ ...formData, isTrending: e.target.checked })}
-                className="h-4 w-4"
-              />
+              <input type="checkbox" checked={formData.isTrending} onChange={(e) => setFormData({ ...formData, isTrending: e.target.checked })} className="h-4 w-4" />
               <span>Trending</span>
             </label>
           </div>
@@ -337,13 +356,7 @@ export const Products: React.FC = () => {
           {/* File Upload */}
           <div>
             <label className="block text-sm font-medium mb-2">Upload Images</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full border px-3 py-2 rounded-md"
-            />
-
+            <input type="file" accept="image/*" onChange={handleFileChange} className="w-full border px-3 py-2 rounded-md" />
             {formData.images.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.images.map((file: File, i: number) => (
@@ -360,7 +373,7 @@ export const Products: React.FC = () => {
         </form>
       </Modal>
 
-      {/* ✅ Crop Modal */}
+      {/* Crop Modal */}
       <Modal isOpen={cropModalOpen} onClose={() => setCropModalOpen(false)} title="Crop Image">
         {imageSrc && (
           <div className="relative w-full h-64 bg-gray-200">
