@@ -24,6 +24,7 @@ export const Categories: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -63,12 +64,14 @@ export const Categories: React.FC = () => {
   const handleAdd = () => {
     setEditingCategory(null);
     setFormData({ title: '', description: '' });
+    setImageFile(null);
     setIsModalOpen(true);
   };
 
   const handleEdit = (category: any) => {
     setEditingCategory(category);
     setFormData({ title: category.title, description: category.description });
+    setImageFile(null); // user can choose new image
     setIsModalOpen(true);
   };
 
@@ -79,7 +82,6 @@ export const Categories: React.FC = () => {
       const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           ...AuthService.getAuthHeaders(),
         },
       });
@@ -106,11 +108,12 @@ export const Categories: React.FC = () => {
       return;
     }
 
-    // Generate slug from title
-    const payload = {
-      ...formData,
-      slug: slugify(formData.title)
-    };
+    // Prepare FormData for file + text
+    const payload = new FormData();
+    payload.append('title', formData.title);
+    payload.append('description', formData.description);
+    payload.append('slug', slugify(formData.title));
+    if (imageFile) payload.append('image', imageFile);
 
     const url = editingCategory
       ? `${API_BASE_URL}/categories/${editingCategory._id}`
@@ -121,10 +124,9 @@ export const Categories: React.FC = () => {
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          ...AuthService.getAuthHeaders(),
+          ...AuthService.getAuthHeaders(), // 🔑 don't set Content-Type here, browser will set it
         },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       const data = await response.json();
@@ -134,6 +136,7 @@ export const Categories: React.FC = () => {
         fetchCategories();
         setIsModalOpen(false);
         setFormData({ title: '', description: '' });
+        setImageFile(null);
       } else {
         toast.error(data.error || 'Operation failed');
       }
@@ -162,10 +165,20 @@ export const Categories: React.FC = () => {
         ) : categories.length === 0 ? (
           <p className="p-6 text-gray-500">No categories found.</p>
         ) : (
-          <Table headers={['ID', 'Title', 'Description', 'Actions']}>
+          <Table headers={['Image', 'Title', 'Description', 'Actions']}>
             {categories.map((category) => (
               <tr key={category._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm">{category._id}</td>
+                <td className="px-6 py-4 text-sm">
+                  {category.image?.url ? (
+                    <img
+                      src={category.image.url}
+                      alt={category.title}
+                      className="h-12 w-12 object-cover rounded"
+                    />
+                  ) : (
+                    <span className="text-gray-400">No Image</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-sm font-medium">{category.title}</td>
                 <td className="px-6 py-4 text-sm">{category.description}</td>
                 <td className="px-6 py-4">
@@ -201,6 +214,18 @@ export const Categories: React.FC = () => {
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category Image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+              className="block w-full text-sm text-gray-500 border rounded p-1"
+            />
+            {imageFile && (
+              <p className="mt-1 text-xs text-gray-600">{imageFile.name}</p>
+            )}
+          </div>
           <div className="flex justify-end space-x-3 pt-4">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit">{editingCategory ? 'Update' : 'Create'}</Button>
