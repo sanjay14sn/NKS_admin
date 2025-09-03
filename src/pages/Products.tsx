@@ -121,45 +121,49 @@ export const Products: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const form = new FormData();
-    form.append('title', formData.title);
-    form.append('price', formData.price);
-    form.append('retailerPrice', formData.retailerPrice);
-    form.append('stock', formData.stock);
-    form.append('category', formData.category);
-    form.append('description', formData.description);
-    form.append('aboutProduct', formData.aboutProduct);
-    form.append('isFeatured', String(formData.isFeatured));
-    form.append('isTrending', String(formData.isTrending));
+  const form = new FormData();
+  form.append('title', formData.title);
+  form.append('price', formData.price);
+  form.append('retailerPrice', formData.retailerPrice);
+  form.append('stock', formData.stock);
+  form.append('category', formData.category);
+  form.append('description', formData.description);
+  form.append('aboutProduct', formData.aboutProduct);
+  form.append('isFeatured', String(formData.isFeatured));
+  form.append('isTrending', String(formData.isTrending));
 
-    formData.images.forEach((file: File) => form.append('images', file));
+  formData.images.forEach((file: File) => form.append('images', file));
 
-    const url = editingProduct
-      ? `${API_BASE_URL}/products/${editingProduct._id}`
-      : `${API_BASE_URL}/products`;
-    const method = editingProduct ? 'PUT' : 'POST';
+  const url = editingProduct
+    ? `${API_BASE_URL}/products/${editingProduct._id}`
+    : `${API_BASE_URL}/products`;
+  const method = editingProduct ? 'PUT' : 'POST';
 
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: AuthService.getAuthHeaders(),
-        body: form,
-      });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
-        fetchProducts();
-        setIsModalOpen(false);
-      } else {
-        toast.error(data.error || 'Operation failed');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Network error, operation failed');
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        ...AuthService.getAuthHeaders(),
+        // ❌ DO NOT set "Content-Type" here, let browser set it
+      },
+      body: form,
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
+      fetchProducts();
+      setIsModalOpen(false);
+    } else {
+      toast.error(data.error || 'Operation failed');
     }
-  };
+  } catch (error) {
+    console.error(error);
+    toast.error('Network error, operation failed');
+  }
+};
 
   return (
     <div className="space-y-6 p-6">
