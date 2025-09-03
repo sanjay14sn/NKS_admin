@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import Cropper from 'react-easy-crop';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Table } from '../components/ui/Table';
@@ -9,11 +10,27 @@ import toast, { Toaster } from 'react-hot-toast';
 
 const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
+interface Product {
+  _id: string;
+  title: string;
+  price: number;
+  retailerPrice: number;
+  stock: number;
+  category?: { _id: string; title: string };
+  description?: string;
+  aboutProduct?: string;
+  images?: string[];
+  isFeatured: boolean;
+  isTrending: boolean;
+}
+
 export const Products: React.FC = () => {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState<any>({
     title: '',
     price: '',
@@ -27,6 +44,12 @@ export const Products: React.FC = () => {
     isTrending: false,
   });
 
+  // Cropper states
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       toast.error('Please login first');
@@ -37,132 +60,88 @@ export const Products: React.FC = () => {
     fetchProducts();
   }, []);
 
-const fetchCategories = async () => {
-  try {
-    console.log("📡 Fetching categories...");
-    const headers = AuthService.getAuthHeaders();
-    console.log("➡️ Headers (categories):", headers);
-
-    const response = await fetch(`${API_BASE_URL}/categories`, {
-      headers,
-    });
-
-    console.log("⬅️ Response (categories):", response.status);
-    const data = await response.json();
-    console.log("⬅️ Data (categories):", data);
-
-    if (response.ok) setCategories(data.categories || []);
-    else toast.error(data.error || 'Failed to fetch categories');
-  } catch (error) {
-    console.error("❌ Error fetching categories:", error);
-    toast.error('Network error fetching categories');
-  }
-};
-
-const fetchProducts = async () => {
-  try {
-    console.log("📡 Fetching products...");
-    const headers = AuthService.getAuthHeaders();
-    console.log("➡️ Headers (products):", headers);
-
-    const response = await fetch(`${API_BASE_URL}/products`, {
-      headers,
-    });
-
-    console.log("⬅️ Response (products):", response.status);
-    const data = await response.json();
-    console.log("⬅️ Data (products):", data);
-
-    if (response.ok) setProducts(data.products || []);
-    else toast.error(data.error || 'Failed to fetch products');
-  } catch (error) {
-    console.error("❌ Error fetching products:", error);
-    toast.error('Network error fetching products');
-  }
-};
-
-const handleDelete = async (id: string) => {
-  if (!window.confirm('Are you sure you want to delete this product?')) return;
-
-  try {
-    console.log("🗑️ Deleting product:", id);
-    const headers = AuthService.getAuthHeaders();
-    console.log("➡️ Headers (delete):", headers);
-
-    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
-      method: 'DELETE',
-      headers,
-    });
-
-    console.log("⬅️ Response (delete):", response.status);
-    const data = await response.json();
-    console.log("⬅️ Data (delete):", data);
-
-    if (response.ok) {
-      toast.success('Product deleted successfully');
-      fetchProducts();
-    } else {
-      toast.error(data.error || 'Failed to delete product');
+  const fetchCategories = async () => {
+    try {
+      const headers = AuthService.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/categories`, { headers });
+      const data = await response.json();
+      if (response.ok) setCategories(data.categories || []);
+      else toast.error(data.error || 'Failed to fetch categories');
+    } catch {
+      toast.error('Network error fetching categories');
     }
-  } catch (error) {
-    console.error("❌ Error deleting product:", error);
-    toast.error('Network error deleting product');
-  }
-};
+  };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  const form = new FormData();
-  form.append('title', formData.title);
-  form.append('price', formData.price);
-  form.append('retailerPrice', formData.retailerPrice);
-  form.append('stock', formData.stock);
-  form.append('category', formData.category);
-  form.append('description', formData.description);
-  form.append('aboutProduct', formData.aboutProduct);
-  form.append('isFeatured', String(formData.isFeatured));
-  form.append('isTrending', String(formData.isTrending));
-  formData.images.forEach((file: File) => form.append('images', file));
-
-  const url = editingProduct
-    ? `${API_BASE_URL}/products/${editingProduct._id}`
-    : `${API_BASE_URL}/products`;
-  const method = editingProduct ? 'PUT' : 'POST';
-
-  try {
-    const headers = AuthService.getAuthHeaders();
-    console.log(`📤 ${method} product`);
-    console.log("➡️ URL:", url);
-    console.log("➡️ Headers (submit):", headers);
-    console.log("➡️ FormData entries:");
-    for (const pair of form.entries()) {
-      console.log(pair[0], pair[1]);
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const headers = AuthService.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/products`, { headers });
+      const data = await response.json();
+      if (response.ok) setProducts(data.products || []);
+      else toast.error(data.error || 'Failed to fetch products');
+    } catch {
+      toast.error('Network error fetching products');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: form,
-    });
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
 
-    console.log("⬅️ Response (submit):", response.status);
-    const data = await response.json();
-    console.log("⬅️ Data (submit):", data);
-
-    if (response.ok) {
-      toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
-      fetchProducts();
-      setIsModalOpen(false);
-    } else {
-      toast.error(data.error || 'Operation failed');
+    try {
+      const headers = AuthService.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Product deleted successfully');
+        fetchProducts();
+      } else {
+        toast.error(data.error || 'Failed to delete product');
+      }
+    } catch {
+      toast.error('Network error deleting product');
     }
-  } catch (error) {
-    console.error("❌ Error submitting product:", error);
-    toast.error('Network error, operation failed');
-  }
-};
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = new FormData();
+    form.append('title', formData.title);
+    form.append('price', formData.price);
+    form.append('retailerPrice', formData.retailerPrice);
+    form.append('stock', formData.stock);
+    form.append('category', formData.category);
+    form.append('description', formData.description);
+    form.append('aboutProduct', formData.aboutProduct);
+    form.append('isFeatured', String(formData.isFeatured));
+    form.append('isTrending', String(formData.isTrending));
+    formData.images.forEach((file: File) => form.append('images', file));
+
+    const url = editingProduct
+      ? `${API_BASE_URL}/products/${editingProduct._id}`
+      : `${API_BASE_URL}/products`;
+    const method = editingProduct ? 'PUT' : 'POST';
+
+    try {
+      const headers = AuthService.getAuthHeaders();
+      const response = await fetch(url, { method, headers, body: form });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
+        fetchProducts();
+        setIsModalOpen(false);
+      } else {
+        toast.error(data.error || 'Operation failed');
+      }
+    } catch {
+      toast.error('Network error, operation failed');
+    }
+  };
 
   const handleAdd = () => {
     setEditingProduct(null);
@@ -181,7 +160,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (product: any) => {
+  const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setFormData({
       title: product.title,
@@ -191,14 +170,62 @@ const handleSubmit = async (e: React.FormEvent) => {
       category: product.category?._id || '',
       description: product.description || '',
       aboutProduct: product.aboutProduct || '',
-      images: [], // new uploads only
+      images: [],
       isFeatured: product.isFeatured || false,
       isTrending: product.isTrending || false,
     });
     setIsModalOpen(true);
   };
 
+  // Handle file select -> open crop modal
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setImageSrc(URL.createObjectURL(file));
+      setCropModalOpen(true);
+    }
+  };
 
+  // Convert cropped area to File
+  const getCroppedImg = async (imageSrc: string, cropPixels: any): Promise<File> => {
+    const image = new Image();
+    image.src = imageSrc;
+    await new Promise((resolve) => (image.onload = resolve));
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = cropPixels.width;
+    canvas.height = cropPixels.height;
+
+    ctx.drawImage(
+      image,
+      cropPixels.x,
+      cropPixels.y,
+      cropPixels.width,
+      cropPixels.height,
+      0,
+      0,
+      cropPixels.width,
+      cropPixels.height
+    );
+
+    return new Promise<File>((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(new File([blob!], selectedFile?.name || 'cropped.jpg', { type: 'image/jpeg' }));
+      }, 'image/jpeg');
+    });
+  };
+
+  const handleCropConfirm = async () => {
+    if (imageSrc && croppedAreaPixels) {
+      const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels);
+      setFormData({ ...formData, images: [...formData.images, croppedFile] });
+      setCropModalOpen(false);
+      setImageSrc(null);
+      setSelectedFile(null);
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -213,45 +240,51 @@ const handleSubmit = async (e: React.FormEvent) => {
         </Button>
       </div>
 
-      {/* ✅ Product Table with Image */}
-      <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-        <Table headers={['Image', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Featured', 'Trending', 'Actions']}>
-          {products.map((product) => (
-            <tr key={product._id} className="hover:bg-gray-50">
-              <td className="px-6 py-4">
-                {product.images?.length > 0 ? (
-                  <img
-                    src={product.images[0]} // show first image
-                    alt={product.title}
-                    className="h-12 w-12 object-cover rounded"
-                  />
-                ) : (
-                  <span className="text-gray-400">No Image</span>
-                )}
-              </td>
-              <td className="px-6 py-4 font-medium">{product.title}</td>
-              <td className="px-6 py-4">${product.price}</td>
-              <td className="px-6 py-4 text-green-600 font-medium">${product.retailerPrice}</td>
-              <td className="px-6 py-4">{product.stock}</td>
-              <td className="px-6 py-4">{product.category?.title}</td>
-              <td className="px-6 py-4">{product.isFeatured ? 'Yes' : 'No'}</td>
-              <td className="px-6 py-4">{product.isTrending ? 'Yes' : 'No'}</td>
-              <td className="px-6 py-4">
-                <div className="flex space-x-2">
-                  <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-900">
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => handleDelete(product._id)} className="text-red-600 hover:text-red-900">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </Table>
-      </div>
+      {/* ✅ Loading / Empty / Table */}
+      {loading ? (
+        <p className="text-gray-500">Loading products...</p>
+      ) : products.length === 0 ? (
+        <p className="text-gray-500">No products found.</p>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+          <Table headers={['Image', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Featured', 'Trending', 'Actions']}>
+            {products.map((product) => (
+              <tr key={product._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4">
+                  {product.images?.length ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      className="h-12 w-12 object-cover rounded"
+                    />
+                  ) : (
+                    <span className="text-gray-400">No Image</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 font-medium">{product.title}</td>
+                <td className="px-6 py-4">${product.price}</td>
+                <td className="px-6 py-4 text-green-600 font-medium">${product.retailerPrice}</td>
+                <td className="px-6 py-4">{product.stock}</td>
+                <td className="px-6 py-4">{product.category?.title}</td>
+                <td className="px-6 py-4">{product.isFeatured ? 'Yes' : 'No'}</td>
+                <td className="px-6 py-4">{product.isTrending ? 'Yes' : 'No'}</td>
+                <td className="px-6 py-4">
+                  <div className="flex space-x-2">
+                    <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-900">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDelete(product._id)} className="text-red-600 hover:text-red-900">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        </div>
+      )}
 
-      {/* ✅ Modal with Image Preview */}
+      {/* ✅ Add/Edit Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingProduct ? 'Edit Product' : 'Add Product'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
@@ -301,28 +334,20 @@ const handleSubmit = async (e: React.FormEvent) => {
             </label>
           </div>
 
-          {/* File Upload with Preview */}
+          {/* File Upload */}
           <div>
             <label className="block text-sm font-medium mb-2">Upload Images</label>
             <input
               type="file"
-              multiple
               accept="image/*"
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, images: Array.from(e.target.files || []) })
-              }
+              onChange={handleFileChange}
               className="w-full border px-3 py-2 rounded-md"
             />
-            {/* Preview selected images */}
+
             {formData.images.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.images.map((file: File, i: number) => (
-                  <img
-                    key={i}
-                    src={URL.createObjectURL(file)}
-                    alt="preview"
-                    className="h-16 w-16 object-cover rounded"
-                  />
+                  <img key={i} src={URL.createObjectURL(file)} alt="preview" className="h-16 w-16 object-cover rounded" />
                 ))}
               </div>
             )}
@@ -333,6 +358,27 @@ const handleSubmit = async (e: React.FormEvent) => {
             <Button type="submit">{editingProduct ? 'Update' : 'Create'}</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* ✅ Crop Modal */}
+      <Modal isOpen={cropModalOpen} onClose={() => setCropModalOpen(false)} title="Crop Image">
+        {imageSrc && (
+          <div className="relative w-full h-64 bg-gray-200">
+            <Cropper
+              image={imageSrc}
+              crop={{ x: 0, y: 0 }}
+              zoom={1}
+              aspect={1}
+              onCropChange={() => {}}
+              onCropComplete={(_croppedArea: any, croppedPixels: any) => setCroppedAreaPixels(croppedPixels)}
+              onZoomChange={() => {}}
+            />
+          </div>
+        )}
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button variant="secondary" onClick={() => setCropModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleCropConfirm}>Confirm</Button>
+        </div>
       </Modal>
     </div>
   );
