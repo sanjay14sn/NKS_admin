@@ -92,7 +92,7 @@ export const Products: React.FC = () => {
       category: product.category?._id || '',
       description: product.description || '',
       aboutProduct: product.aboutProduct || '',
-      images: [],
+      images: [], // new uploads only
       isFeatured: product.isFeatured || false,
       isTrending: product.isTrending || false,
     });
@@ -121,49 +121,49 @@ export const Products: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const form = new FormData();
-  form.append('title', formData.title);
-  form.append('price', formData.price);
-  form.append('retailerPrice', formData.retailerPrice);
-  form.append('stock', formData.stock);
-  form.append('category', formData.category);
-  form.append('description', formData.description);
-  form.append('aboutProduct', formData.aboutProduct);
-  form.append('isFeatured', String(formData.isFeatured));
-  form.append('isTrending', String(formData.isTrending));
+    const form = new FormData();
+    form.append('title', formData.title);
+    form.append('price', formData.price);
+    form.append('retailerPrice', formData.retailerPrice);
+    form.append('stock', formData.stock);
+    form.append('category', formData.category);
+    form.append('description', formData.description);
+    form.append('aboutProduct', formData.aboutProduct);
+    form.append('isFeatured', String(formData.isFeatured));
+    form.append('isTrending', String(formData.isTrending));
 
-  formData.images.forEach((file: File) => form.append('images', file));
+    formData.images.forEach((file: File) => form.append('images', file));
 
-  const url = editingProduct
-    ? `${API_BASE_URL}/products/${editingProduct._id}`
-    : `${API_BASE_URL}/products`;
-  const method = editingProduct ? 'PUT' : 'POST';
+    const url = editingProduct
+      ? `${API_BASE_URL}/products/${editingProduct._id}`
+      : `${API_BASE_URL}/products`;
+    const method = editingProduct ? 'PUT' : 'POST';
 
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        ...AuthService.getAuthHeaders(),
-        // ❌ DO NOT set "Content-Type" here, let browser set it
-      },
-      body: form,
-    });
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          ...AuthService.getAuthHeaders(),
+          // DO NOT set Content-Type for FormData
+        },
+        body: form,
+      });
 
-    const data = await response.json();
-    if (response.ok) {
-      toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
-      fetchProducts();
-      setIsModalOpen(false);
-    } else {
-      toast.error(data.error || 'Operation failed');
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
+        fetchProducts();
+        setIsModalOpen(false);
+      } else {
+        toast.error(data.error || 'Operation failed');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Network error, operation failed');
     }
-  } catch (error) {
-    console.error(error);
-    toast.error('Network error, operation failed');
-  }
-};
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -178,11 +178,22 @@ export const Products: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm">
-        <Table headers={['ID', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Featured', 'Trending', 'Actions']}>
+      {/* ✅ Product Table with Image */}
+      <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+        <Table headers={['Image', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Featured', 'Trending', 'Actions']}>
           {products.map((product) => (
             <tr key={product._id} className="hover:bg-gray-50">
-              <td className="px-6 py-4">{product._id}</td>
+              <td className="px-6 py-4">
+                {product.images?.length > 0 ? (
+                  <img
+                    src={product.images[0]} // show first image
+                    alt={product.title}
+                    className="h-12 w-12 object-cover rounded"
+                  />
+                ) : (
+                  <span className="text-gray-400">No Image</span>
+                )}
+              </td>
               <td className="px-6 py-4 font-medium">{product.title}</td>
               <td className="px-6 py-4">${product.price}</td>
               <td className="px-6 py-4 text-green-600 font-medium">${product.retailerPrice}</td>
@@ -205,6 +216,7 @@ export const Products: React.FC = () => {
         </Table>
       </div>
 
+      {/* ✅ Modal with Image Preview */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingProduct ? 'Edit Product' : 'Add Product'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
@@ -254,8 +266,9 @@ export const Products: React.FC = () => {
             </label>
           </div>
 
+          {/* File Upload with Preview */}
           <div>
-            <label className="block text-sm font-medium mb-2">Images</label>
+            <label className="block text-sm font-medium mb-2">Upload Images</label>
             <input
               type="file"
               multiple
@@ -265,6 +278,19 @@ export const Products: React.FC = () => {
               }
               className="w-full border px-3 py-2 rounded-md"
             />
+            {/* Preview selected images */}
+            {formData.images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.images.map((file: File, i: number) => (
+                  <img
+                    key={i}
+                    src={URL.createObjectURL(file)}
+                    alt="preview"
+                    className="h-16 w-16 object-cover rounded"
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
