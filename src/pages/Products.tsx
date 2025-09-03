@@ -23,6 +23,8 @@ export const Products: React.FC = () => {
     description: '',
     aboutProduct: '',
     images: [] as File[],
+    isFeatured: false,
+    isTrending: false,
   });
 
   useEffect(() => {
@@ -74,6 +76,8 @@ export const Products: React.FC = () => {
       description: '',
       aboutProduct: '',
       images: [],
+      isFeatured: false,
+      isTrending: false,
     });
     setIsModalOpen(true);
   };
@@ -89,6 +93,8 @@ export const Products: React.FC = () => {
       description: product.description || '',
       aboutProduct: product.aboutProduct || '',
       images: [],
+      isFeatured: product.isFeatured || false,
+      isTrending: product.isTrending || false,
     });
     setIsModalOpen(true);
   };
@@ -125,6 +131,8 @@ export const Products: React.FC = () => {
     form.append('category', formData.category);
     form.append('description', formData.description);
     form.append('aboutProduct', formData.aboutProduct);
+    form.append('isFeatured', String(formData.isFeatured));
+    form.append('isTrending', String(formData.isTrending));
 
     formData.images.forEach((file: File) => form.append('images', file));
 
@@ -167,7 +175,7 @@ export const Products: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm">
-        <Table headers={['ID', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Actions']}>
+        <Table headers={['ID', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Featured', 'Trending', 'Actions']}>
           {products.map((product) => (
             <tr key={product._id} className="hover:bg-gray-50">
               <td className="px-6 py-4">{product._id}</td>
@@ -176,6 +184,8 @@ export const Products: React.FC = () => {
               <td className="px-6 py-4 text-green-600 font-medium">${product.retailerPrice}</td>
               <td className="px-6 py-4">{product.stock}</td>
               <td className="px-6 py-4">{product.category?.title}</td>
+              <td className="px-6 py-4">{product.isFeatured ? 'Yes' : 'No'}</td>
+              <td className="px-6 py-4">{product.isTrending ? 'Yes' : 'No'}</td>
               <td className="px-6 py-4">
                 <div className="flex space-x-2">
                   <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-900">
@@ -217,6 +227,28 @@ export const Products: React.FC = () => {
 
           <Input label="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
           <Input label="About Product" value={formData.aboutProduct} onChange={(e) => setFormData({ ...formData, aboutProduct: e.target.value })} />
+
+          <div className="flex space-x-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.isFeatured}
+                onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <span>Featured</span>
+            </label>
+
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.isTrending}
+                onChange={(e) => setFormData({ ...formData, isTrending: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <span>Trending</span>
+            </label>
+          </div>
 
           <div>
             <label className="block text-sm font-medium mb-2">Images</label>
