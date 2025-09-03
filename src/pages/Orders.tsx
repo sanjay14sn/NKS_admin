@@ -4,34 +4,22 @@ import { Button } from '../components/ui/Button';
 import { Table } from '../components/ui/Table';
 import { Modal } from '../components/ui/Modal';
 import { AuthService } from '../services/auth';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
-// Define the Order types based on your backend response
+// --- Types ---
 interface OrderItem {
-  product: {
-    _id: string;
-    title: string;
-    images?: string[];
-  };
+  product: { _id: string; title: string; images?: string[] };
   quantity: number;
   price: number;
 }
 
 interface Order {
   _id: string;
-  user: {
-    _id: string;
-    name: string;
-    phone: string;
-  };
-  shippingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country?: string;
-  };
+  user: { _id: string; name: string; phone: string };
+  shippingAddress: { street: string; city: string; state: string; zipCode: string; country?: string };
   items: OrderItem[];
   total: number;
   status: string;
@@ -42,6 +30,7 @@ interface Order {
   updatedAt: string;
 }
 
+// --- Main Component ---
 export const Orders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -49,7 +38,9 @@ export const Orders: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const filters: typeof activeFilter[] = ['All', 'Today', 'This Week', 'This Month'];
+  const statusOptions = ['placed', 'processing', 'shipped', 'delivered', 'cancelled'];
 
+  // Fetch orders
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -58,70 +49,65 @@ export const Orders: React.FC = () => {
     setLoading(true);
     try {
       const headers = AuthService.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/orders`, { headers });
-      const data = await response.json();
-      if (response.ok && data.orders) {
-        setOrders(data.orders);
-      } else {
-        console.error('Failed to fetch orders', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+      const res = await fetch(`${API_BASE_URL}/orders`, { headers });
+      const data = await res.json();
+      if (res.ok && data.orders) setOrders(data.orders);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to fetch orders');
     }
     setLoading(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'placed':
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'shipped':
-        return 'bg-blue-100 text-blue-800';
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const filteredOrders = orders.filter((order) => {
-    const orderDate = new Date(order.createdAt);
-    const now = new Date();
-
-    switch (activeFilter) {
-      case 'Today':
-        return orderDate.toDateString() === now.toDateString();
-      case 'This Week': {
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        return orderDate >= startOfWeek && orderDate <= endOfWeek;
-      }
-      case 'This Month':
-        return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
-      default:
-        return true;
-    }
-  });
-
+  // Update order status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const headers = { ...AuthService.getAuthHeaders(), 'Content-Type': 'application/json' };
-      const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ status: newStatus }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        fetchOrders(); // Refresh orders after update
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Order status updated!');
+        fetchOrders(); // Refresh orders
+        if (selectedOrder?._id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
       } else {
-        console.error('Failed to update status', data.error);
+        toast.error(data.error || 'Failed to update status');
       }
-    } catch (error) {
-      console.error('Error updating order status:', error);
+    } catch (err) {
+      console.error(err);
+      toast.error('Network error');
+    }
+  };
+
+  // Filter logic
+  const filteredOrders = orders.filter((order) => {
+    const orderDate = new Date(order.createdAt);
+    const now = new Date();
+    switch (activeFilter) {
+      case 'Today': return orderDate.toDateString() === now.toDateString();
+      case 'This Week': {
+        const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 6);
+        return orderDate >= startOfWeek && orderDate <= endOfWeek;
+      }
+      case 'This Month': return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+      default: return true;
+    }
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'placed': return 'bg-yellow-100 text-yellow-800';
+      case 'processing': return 'bg-purple-100 text-purple-800';
+      case 'shipped': return 'bg-blue-100 text-blue-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -143,8 +129,7 @@ export const Orders: React.FC = () => {
             onClick={() => setActiveFilter(filter)}
             className="flex items-center"
           >
-            <Filter className="h-4 w-4 mr-2" />
-            {filter}
+            <Filter className="h-4 w-4 mr-2" /> {filter}
           </Button>
         ))}
       </div>
@@ -167,28 +152,10 @@ export const Orders: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">₹{order.total}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleString()}</td>
-                <td className="px-6 py-4">
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      onClick={() => setSelectedOrder(order)}
-                      className="flex items-center"
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Track
-                    </Button>
-
-                    {/* Example: Quick status update buttons */}
-                    {order.status !== 'shipped' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateOrderStatus(order._id, 'shipped')}
-                        className="bg-blue-600 text-white hover:bg-blue-700"
-                      >
-                        Mark Shipped
-                      </Button>
-                    )}
-                  </div>
+                <td className="px-6 py-4 flex space-x-2">
+                  <Button size="sm" onClick={() => setSelectedOrder(order)} className="flex items-center">
+                    <Eye className="h-4 w-4 mr-1" /> Track
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -196,41 +163,48 @@ export const Orders: React.FC = () => {
         </div>
       )}
 
+      {/* Modal */}
       <Modal
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
         title={`Order Tracking - ${selectedOrder?._id}`}
       >
-        {selectedOrder ? (
+        {selectedOrder && (
           <div className="space-y-2">
-            <div>
-              <strong>Customer:</strong> {selectedOrder.user.name} ({selectedOrder.user.phone})
+            <div><strong>Customer:</strong> {selectedOrder.user.name} ({selectedOrder.user.phone})</div>
+            <div><strong>Address:</strong> {selectedOrder.shippingAddress.street}, {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}, {selectedOrder.shippingAddress.zipCode}</div>
+            <div><strong>Payment Method:</strong> {selectedOrder.paymentMethod} ({selectedOrder.paymentStatus})</div>
+            <div><strong>Notes:</strong> {selectedOrder.notes || 'None'}</div>
+
+            <div className="mt-2">
+              <strong>Status:</strong>
+              <select
+                value={selectedOrder.status}
+                onChange={(e) => updateOrderStatus(selectedOrder._id, e.target.value)}
+                className="ml-2 border rounded p-1"
+              >
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
             </div>
-            <div>
-              <strong>Address:</strong> {selectedOrder.shippingAddress.street}, {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}, {selectedOrder.shippingAddress.zipCode}
-            </div>
-            <div>
-              <strong>Payment Method:</strong> {selectedOrder.paymentMethod} ({selectedOrder.paymentStatus})
-            </div>
-            <div>
-              <strong>Notes:</strong> {selectedOrder.notes || 'None'}
-            </div>
+
             <div className="mt-2">
               <strong>Items:</strong>
               <ul className="list-disc list-inside">
                 {selectedOrder.items.map((item) => (
-                  <li key={item.product._id}>
-                    {item.product.title} x {item.quantity} - ₹{item.price}
-                  </li>
+                  <li key={item.product._id}>{item.product.title} x {item.quantity} - ₹{item.price}</li>
                 ))}
               </ul>
             </div>
+
             <div className="mt-2 font-semibold">Total: ₹{selectedOrder.total}</div>
           </div>
-        ) : null}
+        )}
       </Modal>
     </div>
   );
 };
 
 export default Orders;
+  
