@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import Cropper, { Area } from 'react-easy-crop';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Table } from '../components/ui/Table';
@@ -18,13 +19,32 @@ const slugify = (text: string) =>
     .replace(/-+/g, '-')
     .trim();
 
+type Category = {
+  _id: string;
+  title: string;
+  description?: string;
+  image?: { url: string };
+};
+
+type FormDataType = {
+  title: string;
+  description: string;
+};
+
 export const Categories: React.FC = () => {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [formData, setFormData] = useState({ title: '', description: '' });
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [formData, setFormData] = useState<FormDataType>({ title: '', description: '' });
+
+  // Image crop states
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -65,13 +85,15 @@ export const Categories: React.FC = () => {
     setEditingCategory(null);
     setFormData({ title: '', description: '' });
     setImageFile(null);
+    setImagePreview(null);
     setIsModalOpen(true);
   };
 
-  const handleEdit = (category: any) => {
+  const handleEdit = (category: Category) => {
     setEditingCategory(category);
-    setFormData({ title: category.title, description: category.description });
+    setFormData({ title: category.title, description: category.description || '' });
     setImageFile(null); // user can choose new image
+    setImagePreview(null);
     setIsModalOpen(true);
   };
 
@@ -98,6 +120,64 @@ export const Categories: React.FC = () => {
       console.error(error);
       toast.error('Network error deleting category');
     }
+  };
+
+  const onCropComplete = useCallback((_croppedArea: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels);
+  }, []);
+
+  // Convert cropped area to a File
+  const getCroppedImage = async (imageSrc: string, cropPixels: Area): Promise<File | null> => {
+    const image = new Image();
+    image.src = imageSrc;
+    await new Promise((resolve) => (image.onload = resolve));
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    canvas.width = cropPixels.width;
+    canvas.height = cropPixels.height;
+
+    ctx.drawImage(
+      image,
+      cropPixels.x,
+      cropPixels.y,
+      cropPixels.width,
+      cropPixels.height,
+      0,
+      0,
+      cropPixels.width,
+      cropPixels.height
+    );
+
+    return new Promise<File | null>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' }));
+        } else {
+          resolve(null);
+        }
+      }, 'image/jpeg');
+    });
+  };
+
+  const handleFileChange = (file: File | null) => {
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setShowCropper(true);
+  };
+
+  const handleCropConfirm = async () => {
+    if (imagePreview && croppedAreaPixels) {
+      const cropped = await getCroppedImage(imagePreview, croppedAreaPixels);
+      if (cropped) {
+        setImageFile(cropped);
+        setImagePreview(URL.createObjectURL(cropped));
+      }
+    }
+    setShowCropper(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,6 +217,7 @@ export const Categories: React.FC = () => {
         setIsModalOpen(false);
         setFormData({ title: '', description: '' });
         setImageFile(null);
+        setImagePreview(null);
       } else {
         toast.error(data.error || 'Operation failed');
       }
@@ -197,6 +278,7 @@ export const Categories: React.FC = () => {
         )}
       </div>
 
+      {/* Modal for Add/Edit */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -214,23 +296,48 @@ export const Categories: React.FC = () => {
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category Image</label>
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+              onChange={(e) => handleFileChange(e.target.files ? e.target.files[0] : null)}
               className="block w-full text-sm text-gray-500 border rounded p-1"
             />
-            {imageFile && (
-              <p className="mt-1 text-xs text-gray-600">{imageFile.name}</p>
+            {imagePreview && (
+              <div className="mt-2">
+                <img src={imagePreview} alt="Preview" className="h-32 rounded object-cover" />
+              </div>
             )}
           </div>
+
           <div className="flex justify-end space-x-3 pt-4">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit">{editingCategory ? 'Update' : 'Create'}</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Cropper Modal */}
+      <Modal isOpen={showCropper} onClose={() => setShowCropper(false)} title="Crop Image">
+        <div className="relative w-full h-64 bg-gray-900">
+          {imagePreview && (
+            <Cropper
+              image={imagePreview}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+            />
+          )}
+        </div>
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button variant="secondary" onClick={() => setShowCropper(false)}>Cancel</Button>
+          <Button onClick={handleCropConfirm}>Crop & Save</Button>
+        </div>
       </Modal>
     </div>
   );
