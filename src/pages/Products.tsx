@@ -10,6 +10,54 @@ import toast, { Toaster } from 'react-hot-toast';
 
 const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
+
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+const validateProductForm = (data: any): ValidationResult => {
+  const errors: string[] = [];
+
+  // Title
+  if (!data.title || data.title.trim().length < 2 || data.title.trim().length > 200) {
+    errors.push('Title must be between 2 and 200 characters');
+  }
+
+  // Description
+  if (!data.description || data.description.trim().length < 10 || data.description.trim().length > 1000) {
+    errors.push('Description must be between 10 and 1000 characters');
+  }
+
+  // About Product (optional)
+  if (data.aboutProduct && data.aboutProduct.trim().length > 2000) {
+    errors.push('About product cannot exceed 2000 characters');
+  }
+
+  // Price
+  if (isNaN(data.price) || Number(data.price) < 0) {
+    errors.push('Price must be a positive number');
+  }
+
+  // Retailer Price
+  if (isNaN(data.retailerPrice) || Number(data.retailerPrice) < 0) {
+    errors.push('Retailer price must be a positive number');
+  }
+
+  // Stock
+  if (!Number.isInteger(Number(data.stock)) || Number(data.stock) < 0) {
+    errors.push('Stock must be a non-negative integer');
+  }
+
+  // Category
+  if (!data.category) {
+    errors.push('Category is required');
+  }
+
+  return { valid: errors.length === 0, errors };
+};
+
+
 interface Product {
   _id: string;
   title: string;
@@ -115,44 +163,47 @@ export const Products: React.FC = () => {
 
   // ===================== Handle Add/Edit Submit =====================
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.description.length < 10) {
-      toast.error('Description must be at least 10 characters');
-      return;
+  e.preventDefault();
+
+  // Validate form
+  const { valid, errors } = validateProductForm(formData);
+  if (!valid) {
+    errors.forEach((err) => toast.error(err));
+    return;
+  }
+
+  const form = new FormData();
+  form.append('title', formData.title);
+  form.append('price', formData.price);
+  form.append('retailerPrice', formData.retailerPrice);
+  form.append('stock', formData.stock);
+  form.append('category', formData.category);
+  form.append('description', formData.description);
+  form.append('aboutProduct', formData.aboutProduct);
+  form.append('isFeatured', String(formData.isFeatured));
+  form.append('isTrending', String(formData.isTrending));
+  formData.images.forEach((file: File) => form.append('images', file));
+
+  const url = editingProduct
+    ? `${API_BASE_URL}/products/${editingProduct._id}`
+    : `${API_BASE_URL}/products`;
+  const method = editingProduct ? 'PUT' : 'POST';
+
+  try {
+    const headers = AuthService.getAuthHeaders();
+    const response = await fetch(url, { method, headers, body: form });
+    const data = await response.json();
+    if (response.ok) {
+      toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
+      fetchProducts(selectedCategory);
+      setIsModalOpen(false);
+    } else {
+      toast.error(data.error || 'Operation failed');
     }
-
-    const form = new FormData();
-    form.append('title', formData.title);
-    form.append('price', formData.price);
-    form.append('retailerPrice', formData.retailerPrice);
-    form.append('stock', formData.stock);
-    form.append('category', formData.category);
-    form.append('description', formData.description);
-    form.append('aboutProduct', formData.aboutProduct);
-    form.append('isFeatured', String(formData.isFeatured));
-    form.append('isTrending', String(formData.isTrending));
-    formData.images.forEach((file: File) => form.append('images', file));
-
-    const url = editingProduct
-      ? `${API_BASE_URL}/products/${editingProduct._id}`
-      : `${API_BASE_URL}/products`;
-    const method = editingProduct ? 'PUT' : 'POST';
-
-    try {
-      const headers = AuthService.getAuthHeaders();
-      const response = await fetch(url, { method, headers, body: form });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
-        fetchProducts(selectedCategory);
-        setIsModalOpen(false);
-      } else {
-        toast.error(data.error || 'Operation failed');
-      }
-    } catch {
-      toast.error('Network error, operation failed');
-    }
-  };
+  } catch {
+    toast.error('Network error, operation failed');
+  }
+};
 
   // ===================== Add / Edit Product =====================
   const handleAdd = () => {
