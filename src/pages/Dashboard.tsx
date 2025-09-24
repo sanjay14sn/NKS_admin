@@ -1,6 +1,5 @@
 import React from "react";
 import {
-
   LogOut,
   Users,
   Tags,
@@ -38,9 +37,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // ✅ Clear auth token and user data
     AuthService.logout();
-    // Redirect to login page
     navigate("/login");
   };
 
@@ -95,6 +92,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Activity */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Recent Activity
@@ -117,10 +115,28 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Quick Actions
           </h3>
+
+          {/* ✅ Stat containers for Customers & Shop Owners */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
+              <p className="text-sm text-gray-600">Total Customers</p>
+              <p className="text-2xl font-bold text-gray-900">2,420</p>
+              <span className="text-green-600 text-sm font-medium">+25%</span>
+            </div>
+
+            <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
+              <p className="text-sm text-gray-600">Total Shop Owners</p>
+              <p className="text-2xl font-bold text-gray-900">320</p>
+              <span className="text-green-600 text-sm font-medium">+12%</span>
+            </div>
+          </div>
+
+          {/* ✅ Action Buttons */}
           <div className="space-y-3">
             <button className="w-full text-left p-3 rounded-md hover:bg-gray-50 transition-colors">
               <span className="text-sm font-medium text-gray-900">
