@@ -1,17 +1,12 @@
 import React from "react";
 import {
-  ShoppingCart,
-  Package,
-  FolderOpen,
-  TrendingUp,
-  Calendar,
+
   LogOut,
   Users,
   Tags,
   Handshake,
   Coins,
 } from "lucide-react";
-import { dashboardStats } from "../data/dummyData";
 import { AuthService } from "../services/auth";
 import { useNavigate } from "react-router-dom";
 
@@ -69,28 +64,28 @@ export const Dashboard: React.FC = () => {
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Total Affiliates"
+          title="Total Orders"
           value={24}
           icon={<Users className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-cyan-500 to-teal-500"
           change="+2.0%"
         />
         <StatCard
-          title="Active Brands"
+          title="Total Products"
           value={12}
           icon={<Tags className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-purple-500 to-indigo-500"
           change="+1.0%"
         />
         <StatCard
-          title="Active Deals"
+          title="Total Shops"
           value={36}
           icon={<Handshake className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-orange-500 to-red-500"
           change="+4.0%"
         />
         <StatCard
-          title="Average ROI"
+          title="Active Users"
           value="142%"
           icon={<Coins className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-pink-500 to-fuchsia-500"
