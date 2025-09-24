@@ -43,6 +43,10 @@ export const Orders: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'All' | 'Today' | 'This Week' | 'This Month'>('All');
   const [loading, setLoading] = useState(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
+
   const filters: typeof activeFilter[] = ['All', 'Today', 'This Week', 'This Month'];
   const statusOptions = ['placed', 'processing', 'shipped', 'delivered', 'cancelled'];
 
@@ -125,6 +129,13 @@ export const Orders: React.FC = () => {
     }
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * ordersPerPage,
+    currentPage * ordersPerPage
+  );
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'placed': return 'bg-yellow-100 text-yellow-800';
@@ -145,13 +156,17 @@ export const Orders: React.FC = () => {
         </div>
       </div>
 
+      {/* Filters */}
       <div className="flex space-x-4 mb-6">
         {filters.map((filter) => (
           <Button
             key={filter}
             variant={activeFilter === filter ? 'primary' : 'secondary'}
             size="sm"
-            onClick={() => setActiveFilter(filter)}
+            onClick={() => {
+              setActiveFilter(filter);
+              setCurrentPage(1); // reset to page 1 on filter change
+            }}
             className="flex items-center"
           >
             <Filter className="h-4 w-4 mr-2" /> {filter}
@@ -159,14 +174,15 @@ export const Orders: React.FC = () => {
         ))}
       </div>
 
+      {/* Orders Table */}
       {loading ? (
         <div className="text-center py-8">Loading...</div>
-      ) : filteredOrders.length === 0 ? (
+      ) : paginatedOrders.length === 0 ? (
         <div className="text-center py-8 text-gray-500">No orders found</div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
           <Table headers={['Order ID', 'Customer', 'Status', 'Total', 'Date', 'Actions']}>
-            {filteredOrders.map((order) => (
+            {paginatedOrders.map((order) => (
               <tr key={order._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{order._id}</td>
                 <td className="px-6 py-4 text-sm text-gray-900">{order.user?.name || 'N/A'}</td>
@@ -185,6 +201,27 @@ export const Orders: React.FC = () => {
               </tr>
             ))}
           </Table>
+
+          {/* ✅ Pagination below the table */}
+          <div className="flex justify-between items-center p-4 border-t">
+            <Button
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 

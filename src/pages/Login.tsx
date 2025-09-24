@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LogIn, Phone, Lock } from "lucide-react";
+import { Phone, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthService } from "../services/auth";
 
@@ -21,55 +21,84 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-8">
-        {/* Header */}
-        <div className="flex flex-col items-center mb-6">
-          <LogIn className="w-12 h-12 text-blue-600" />
-          <h1 className="mt-2 text-2xl font-bold text-gray-800">Sign In</h1>
-          <p className="text-gray-500 text-sm">Welcome back! Please login.</p>
+    <div className="flex min-h-screen">
+      {/* Left Section */}
+      <div className="flex w-full md:w-1/2 flex-col justify-center items-center bg-white px-8 py-10">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center">
+          <img
+            src="/logo192.png"
+            alt="App Logo"
+            className="h-12 w-12 mb-2"
+          />
+          <h1 className="text-2xl font-bold text-gray-800">
+            Login to your account
+          </h1>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Social buttons */}
+        
+        
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
           <div className="relative">
-            <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+            <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
               type="text"
               placeholder="Phone number"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               required
             />
           </div>
 
           <div className="relative">
-            <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               required
             />
           </div>
 
+          <div className="flex justify-between items-center text-sm">
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" className="rounded border-gray-300" />
+              <span>Remember me</span>
+            </label>
+            <a href="#" className="text-red-500 hover:underline">
+              Forgot password?
+            </a>
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-900 transition-colors"
           >
-            Sign In
+            Login now
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-500">
-          Forgot your password?{" "}
-          <a href="#" className="text-blue-600 hover:underline">
-            Reset here
-          </a>
+       
+      </div>
+
+      {/* Right Section */}
+      <div className="hidden md:flex w-1/2 flex-col justify-center items-center bg-gradient-to-b from-green-50 to-green-100 text-center px-10">
+        <h2 className="text-sm uppercase font-semibold text-gray-600 mb-2">
+          Welcome Back!
+        </h2>
+        <p className="text-xl font-medium text-gray-800 max-w-md">
+          You’re just one step away from a high-quality scanning experience.
         </p>
+        <img
+          src="https://www.svgrepo.com/show/447968/document.svg"
+          alt="Document illustration"
+          className="mt-10 h-32 w-32"
+        />
       </div>
     </div>
   );

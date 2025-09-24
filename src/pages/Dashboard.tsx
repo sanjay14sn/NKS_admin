@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   LogOut,
   Users,
@@ -9,13 +9,39 @@ import {
 import { AuthService } from "../services/auth";
 import { useNavigate } from "react-router-dom";
 
+interface DashboardStats {
+  users: {
+    total: number;
+    shopOwners: number;
+    electricians: number;
+    admins: number;
+  };
+  categories: {
+    total: number;
+  };
+  products: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+  orders: {
+    total: number;
+    thisMonth: number;
+    pending: number;
+    completed: number;
+  };
+  period: {
+    month: string;
+    year: number;
+  };
+}
+
 const StatCard: React.FC<{
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  gradient: string; // Tailwind gradient class
-  change: string; // e.g. "+2.0%"
-}> = ({ title, value, icon, gradient, change }) => {
+  gradient: string;
+}> = ({ title, value, icon, gradient }) => {
   return (
     <div
       className={`rounded-xl p-5 text-white shadow-md hover:shadow-lg transition-all ${gradient}`}
@@ -25,25 +51,49 @@ const StatCard: React.FC<{
       </div>
       <h2 className="mt-4 text-lg font-medium">{title}</h2>
       <p className="mt-1 text-3xl font-bold">{value}</p>
-      <div className="mt-2 text-sm flex items-center justify-between">
-        <span className="text-green-200">{change}</span>
-        <span className="opacity-80">Last month</span>
-      </div>
     </div>
   );
 };
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   const handleLogout = () => {
     AuthService.logout();
     navigate("/login");
   };
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(
+          "https://nks-backend-mou5.onrender.com/api/stats/dashboard",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...AuthService.getAuthHeaders(), // ✅ attach token
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch dashboard stats");
+        }
+
+        const data = await response.json();
+        setStats(data.stats);
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="space-y-6">
-      {/* Header with Logout */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -62,31 +112,27 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Orders"
-          value={24}
+          value={stats?.orders.total ?? "--"}
           icon={<Users className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-cyan-500 to-teal-500"
-          change="+2.0%"
         />
         <StatCard
           title="Total Products"
-          value={12}
+          value={stats?.products.total ?? "--"}
           icon={<Tags className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-purple-500 to-indigo-500"
-          change="+1.0%"
         />
         <StatCard
           title="Total Shops"
-          value={36}
+          value={stats?.users.shopOwners ?? "--"}
           icon={<Handshake className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-orange-500 to-red-500"
-          change="+4.0%"
         />
         <StatCard
           title="Active Users"
-          value="142%"
+          value={stats?.users.total ?? "--"}
           icon={<Coins className="h-6 w-6 text-white" />}
           gradient="bg-gradient-to-r from-pink-500 to-fuchsia-500"
-          change="+12%"
         />
       </div>
 
@@ -125,14 +171,28 @@ export const Dashboard: React.FC = () => {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
               <p className="text-sm text-gray-600">Total Customers</p>
-              <p className="text-2xl font-bold text-gray-900">2,420</p>
-              <span className="text-green-600 text-sm font-medium">+25%</span>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats
+                  ? stats.users.total -
+                    (stats.users.shopOwners +
+                      stats.users.electricians +
+                      stats.users.admins)
+                  : "--"}
+              </p>
+              <span className="text-green-600 text-sm font-medium">
+                {/* you can replace with API trend if available */}
+                +25%
+              </span>
             </div>
 
             <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
               <p className="text-sm text-gray-600">Total Shop Owners</p>
-              <p className="text-2xl font-bold text-gray-900">320</p>
-              <span className="text-green-600 text-sm font-medium">+12%</span>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats?.users.shopOwners ?? "--"}
+              </p>
+              <span className="text-green-600 text-sm font-medium">
+                +12%
+              </span>
             </div>
           </div>
 
