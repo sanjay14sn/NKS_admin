@@ -1,6 +1,8 @@
 import React from 'react';
-import { ShoppingCart, Package, FolderOpen, TrendingUp, Calendar } from 'lucide-react';
+import { ShoppingCart, Package, FolderOpen, TrendingUp, Calendar, LogOut } from 'lucide-react';
 import { dashboardStats } from '../data/dummyData';
+import { AuthService } from "../services/auth";
+import { useNavigate } from 'react-router-dom';
 
 const StatCard: React.FC<{
   title: string;
@@ -24,13 +26,33 @@ const StatCard: React.FC<{
 };
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // ✅ Clear auth token and user data
+    AuthService.logout();
+    // Redirect to login page
+    navigate('/login');
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome to NKS Traders Admin Panel</p>
+      {/* Header with Logout */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Welcome to NKS Traders Admin Panel</p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+          Logout
+        </button>
       </div>
 
+      {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Orders"
@@ -64,6 +86,7 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
+      {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
@@ -101,5 +124,5 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
-export default Dashboard;
 
+export default Dashboard;
