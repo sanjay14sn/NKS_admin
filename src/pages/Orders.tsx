@@ -11,16 +11,22 @@ const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
 // --- Types ---
 interface OrderItem {
-  product: { _id: string; title: string; images?: string[] };
+  product: { _id: string; title: string; images?: string[] } | null;
   quantity: number;
   price: number;
 }
 
 interface Order {
   _id: string;
-  user: { _id: string; name: string; phone: string };
-  shippingAddress: { street: string; city: string; state: string; zipCode: string; country?: string };
-  items: OrderItem[];
+  user: { _id: string; name: string; phone: string } | null;
+  shippingAddress: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  } | null;
+  items: OrderItem[] | null;
   total: number;
   status: string;
   paymentMethod: string;
@@ -49,14 +55,28 @@ export const Orders: React.FC = () => {
     setLoading(true);
     try {
       const headers = AuthService.getAuthHeaders();
+      if (!headers.Authorization) {
+        toast.error("Please login first");
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch(`${API_BASE_URL}/orders`, { headers });
       const data = await res.json();
-      if (res.ok && data.orders) setOrders(data.orders);
+
+      if (res.ok) {
+        setOrders(data.orders || []);
+      } else {
+        toast.error(data.message || 'Failed to fetch orders');
+        setOrders([]);
+      }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to fetch orders');
+      toast.error('Network error. Failed to fetch orders.');
+      setOrders([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Update order status
@@ -80,7 +100,7 @@ export const Orders: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Network error');
+      toast.error('Network error while updating status');
     }
   };
 
@@ -89,14 +109,19 @@ export const Orders: React.FC = () => {
     const orderDate = new Date(order.createdAt);
     const now = new Date();
     switch (activeFilter) {
-      case 'Today': return orderDate.toDateString() === now.toDateString();
+      case 'Today':
+        return orderDate.toDateString() === now.toDateString();
       case 'This Week': {
-        const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
-        const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 6);
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
         return orderDate >= startOfWeek && orderDate <= endOfWeek;
       }
-      case 'This Month': return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
-      default: return true;
+      case 'This Month':
+        return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+      default:
+        return true;
     }
   });
 
@@ -144,13 +169,13 @@ export const Orders: React.FC = () => {
             {filteredOrders.map((order) => (
               <tr key={order._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{order._id}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">{order.user.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">{order.user?.name || 'N/A'}</td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                     {order.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">₹{order.total}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">₹{order.total || 0}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleString()}</td>
                 <td className="px-6 py-4 flex space-x-2">
                   <Button size="sm" onClick={() => setSelectedOrder(order)} className="flex items-center">
@@ -167,19 +192,19 @@ export const Orders: React.FC = () => {
       <Modal
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
-        title={`Order Tracking - ${selectedOrder?._id}`}
+        title={`Order Tracking - ${selectedOrder?._id || ''}`}
       >
         {selectedOrder && (
           <div className="space-y-2">
-            <div><strong>Customer:</strong> {selectedOrder.user.name} ({selectedOrder.user.phone})</div>
-            <div><strong>Address:</strong> {selectedOrder.shippingAddress.street}, {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}, {selectedOrder.shippingAddress.zipCode}</div>
-            <div><strong>Payment Method:</strong> {selectedOrder.paymentMethod} ({selectedOrder.paymentStatus})</div>
+            <div><strong>Customer:</strong> {selectedOrder.user?.name || 'N/A'} ({selectedOrder.user?.phone || 'N/A'})</div>
+            <div><strong>Address:</strong> {selectedOrder.shippingAddress?.street || ''}, {selectedOrder.shippingAddress?.city || ''}, {selectedOrder.shippingAddress?.state || ''}, {selectedOrder.shippingAddress?.zipCode || ''}</div>
+            <div><strong>Payment Method:</strong> {selectedOrder.paymentMethod || 'N/A'} ({selectedOrder.paymentStatus || 'N/A'})</div>
             <div><strong>Notes:</strong> {selectedOrder.notes || 'None'}</div>
 
             <div className="mt-2">
               <strong>Status:</strong>
               <select
-                value={selectedOrder.status}
+                value={selectedOrder.status || ''}
                 onChange={(e) => updateOrderStatus(selectedOrder._id, e.target.value)}
                 className="ml-2 border rounded p-1"
               >
@@ -192,13 +217,15 @@ export const Orders: React.FC = () => {
             <div className="mt-2">
               <strong>Items:</strong>
               <ul className="list-disc list-inside">
-                {selectedOrder.items.map((item) => (
-                  <li key={item.product._id}>{item.product.title} x {item.quantity} - ₹{item.price}</li>
-                ))}
+                {selectedOrder.items?.map((item) => (
+                  <li key={item.product?._id || Math.random()}>
+                    {item.product?.title || 'Unknown'} x {item.quantity || 0} - ₹{item.price || 0}
+                  </li>
+                )) || <li>No items</li>}
               </ul>
             </div>
 
-            <div className="mt-2 font-semibold">Total: ₹{selectedOrder.total}</div>
+            <div className="mt-2 font-semibold">Total: ₹{selectedOrder.total || 0}</div>
           </div>
         )}
       </Modal>
@@ -207,4 +234,3 @@ export const Orders: React.FC = () => {
 };
 
 export default Orders;
-  
