@@ -253,10 +253,11 @@ export const Orders: React.FC = () => {
       >
         {selectedOrder && (
           <div className="space-y-2">
-            <div><strong>Customer:</strong> {selectedOrder.user?.name || 'N/A'} ({selectedOrder.user?.phone || \'N/A'})</div>
-            <div><strong>Address:</strong> {selectedOrder.shippingAddress?.street || ''}, {selectedOrder.shippingAddress?.city || ''}, {selectedOrder.shippingAddress?.state || ''}, {selectedOrder.shippingAddress?.zipCode || ''}</div>
-            <div><strong>Payment Method:</strong> {selectedOrder.paymentMethod || 'N/A'} ({selectedOrder.paymentStatus || \'N/A'})</div>
-            <div><strong>Notes:</strong> {selectedOrder.notes || 'None'}</div>
+          <div><strong>Customer:</strong> {selectedOrder.user?.name || 'N/A'} ({selectedOrder.user?.phone || 'N/A'})</div>
+<div><strong>Address:</strong> {selectedOrder.shippingAddress?.street || ''}, {selectedOrder.shippingAddress?.city || ''}, {selectedOrder.shippingAddress?.state || ''}, {selectedOrder.shippingAddress?.zipCode || ''}</div>
+<div><strong>Payment Method:</strong> {selectedOrder.paymentMethod || 'N/A'} ({selectedOrder.paymentStatus || 'N/A'})</div>
+<div><strong>Notes:</strong> {selectedOrder.notes || 'None'}</div>
+
 
             <div className="mt-2">
               <strong>Status:</strong>

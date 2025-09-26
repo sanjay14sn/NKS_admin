@@ -72,7 +72,7 @@ export const Dashboard: React.FC = () => {
           {
             headers: {
               "Content-Type": "application/json",
-              ...AuthService.getAuthHeaders(), // ✅ attach token
+              ...AuthService.getAuthHeaders(),
             },
           }
         );
@@ -92,127 +92,130 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome to NKS Traders Admin Panel</p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors"
-        >
-          <LogOut className="h-5 w-5" />
-          Logout
-        </button>
-      </div>
-
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Orders"
-          value={stats?.orders.total ?? "--"}
-          icon={<Users className="h-6 w-6 text-white" />}
-          gradient="bg-gradient-to-r from-cyan-500 to-teal-500"
-        />
-        <StatCard
-          title="Total Products"
-          value={stats?.products.total ?? "--"}
-          icon={<Tags className="h-6 w-6 text-white" />}
-          gradient="bg-gradient-to-r from-purple-500 to-indigo-500"
-        />
-        <StatCard
-          title="Total Shops"
-          value={stats?.users.shopOwners ?? "--"}
-          icon={<Handshake className="h-6 w-6 text-white" />}
-          gradient="bg-gradient-to-r from-orange-500 to-red-500"
-        />
-        <StatCard
-          title="Active Users"
-          value={stats?.users.total ?? "--"}
-          icon={<Coins className="h-6 w-6 text-white" />}
-          gradient="bg-gradient-to-r from-pink-500 to-fuchsia-500"
-        />
-      </div>
-
-      {/* Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Activity
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-gray-600">New order received</span>
-              <span className="text-xs text-gray-500">2 hours ago</span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-gray-600">
-                Product added to inventory
-              </span>
-              <span className="text-xs text-gray-500">4 hours ago</span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-gray-600">Category updated</span>
-              <span className="text-xs text-gray-500">1 day ago</span>
-            </div>
+    <div
+      className="min-h-screen bg-cover bg-center"
+      style={{
+        backgroundImage: `url('/images/dashbg.jpg')`, // ✅ replace with your image path
+      }}
+    >
+      <div className="p-6 space-y-6 backdrop-blur-sm bg-white/10 rounded-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">
+              Welcome to NKS Traders Admin Panel
+            </p>
           </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </button>
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Quick Actions
-          </h3>
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="Total Orders"
+            value={stats?.orders.total ?? "--"}
+            icon={<Users className="h-6 w-6 text-white" />}
+            gradient="bg-gradient-to-r from-cyan-500 to-teal-500"
+          />
+          <StatCard
+            title="Total Products"
+            value={stats?.products.total ?? "--"}
+            icon={<Tags className="h-6 w-6 text-white" />}
+            gradient="bg-gradient-to-r from-purple-500 to-indigo-500"
+          />
+          <StatCard
+            title="Total Shops"
+            value={stats?.users.shopOwners ?? "--"}
+            icon={<Handshake className="h-6 w-6 text-white" />}
+            gradient="bg-gradient-to-r from-orange-500 to-red-500"
+          />
+          <StatCard
+            title="Active Users"
+            value={stats?.users.total ?? "--"}
+            icon={<Coins className="h-6 w-6 text-white" />}
+            gradient="bg-gradient-to-r from-pink-500 to-fuchsia-500"
+          />
+        </div>
 
-          {/* ✅ Stat containers for Customers & Shop Owners */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
-              <p className="text-sm text-gray-600">Total Customers</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats
-                  ? stats.users.total -
-                    (stats.users.shopOwners +
-                      stats.users.electricians +
-                      stats.users.admins)
-                  : "--"}
-              </p>
-              <span className="text-green-600 text-sm font-medium">
-                {/* you can replace with API trend if available */}
-                +25%
-              </span>
-            </div>
-
-            <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
-              <p className="text-sm text-gray-600">Total Shop Owners</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats?.users.shopOwners ?? "--"}
-              </p>
-              <span className="text-green-600 text-sm font-medium">
-                +12%
-              </span>
+        {/* Bottom Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity */}
+          <div className="bg-white/80 rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Recent Activity
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-600">
+                  New order received
+                </span>
+                <span className="text-xs text-gray-500">2 hours ago</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-600">
+                  Product added to inventory
+                </span>
+                <span className="text-xs text-gray-500">4 hours ago</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-gray-600">Category updated</span>
+                <span className="text-xs text-gray-500">1 day ago</span>
+              </div>
             </div>
           </div>
 
-          {/* ✅ Action Buttons */}
-          <div className="space-y-3">
-            <button className="w-full text-left p-3 rounded-md hover:bg-gray-50 transition-colors">
-              <span className="text-sm font-medium text-gray-900">
-                Add New Product
-              </span>
-            </button>
-            <button className="w-full text-left p-3 rounded-md hover:bg-gray-50 transition-colors">
-              <span className="text-sm font-medium text-gray-900">
-                View Pending Orders
-              </span>
-            </button>
-            <button className="w-full text-left p-3 rounded-md hover:bg-gray-50 transition-colors">
-              <span className="text-sm font-medium text-gray-900">
-                Manage Categories
-              </span>
-            </button>
+          {/* Quick Actions */}
+          <div className="bg-white/80 rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Quick Actions
+            </h3>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
+                <p className="text-sm text-gray-600">Total Customers</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats
+                    ? stats.users.total -
+                      (stats.users.shopOwners +
+                        stats.users.electricians +
+                        stats.users.admins)
+                    : "--"}
+                </p>
+                <span className="text-green-600 text-sm font-medium">+25%</span>
+              </div>
+
+              <div className="p-4 border rounded-lg bg-gray-50 hover:shadow-md transition">
+                <p className="text-sm text-gray-600">Total Shop Owners</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats?.users.shopOwners ?? "--"}
+                </p>
+                <span className="text-green-600 text-sm font-medium">+12%</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button className="w-full text-left p-3 rounded-md hover:bg-gray-50 transition-colors">
+                <span className="text-sm font-medium text-gray-900">
+                  Add New Product
+                </span>
+              </button>
+              <button className="w-full text-left p-3 rounded-md hover:bg-gray-50 transition-colors">
+                <span className="text-sm font-medium text-gray-900">
+                  View Pending Orders
+                </span>
+              </button>
+              <button className="w-full text-left p-3 rounded-md hover:bg-gray-50 transition-colors">
+                <span className="text-sm font-medium text-gray-900">
+                  Manage Categories
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
