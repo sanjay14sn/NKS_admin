@@ -26,11 +26,11 @@ const Login: React.FC = () => {
       <div className="flex w-full md:w-1/2 flex-col justify-center items-center bg-white px-8 py-10">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
-          <img
-            src="/logo192.png"
-            alt="App Logo"
-            className="h-12 w-12 mb-2"
-          />
+         <img
+  src="/images/App_icon.png"
+  alt="Document illustration"
+  className="mt-10 h-80 w-82"
+/>
           <h1 className="text-2xl font-bold text-gray-800">
             Login to your account
           </h1>
@@ -94,11 +94,12 @@ const Login: React.FC = () => {
         <p className="text-xl font-medium text-gray-800 max-w-md">
           You’re just one step away from a high-quality scanning experience.
         </p>
-        <img
-          src="https://www.svgrepo.com/show/447968/document.svg"
-          alt="Document illustration"
-          className="mt-10 h-32 w-32"
-        />
+      <img
+  src="/images/splash1.png"
+  alt="Document illustration"
+  className="mt-10 h-80 w-82"
+/>
+
       </div>
     </div>
   );
