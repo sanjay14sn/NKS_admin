@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Cropper, { Area } from 'react-easy-crop';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -37,6 +37,10 @@ export const Categories: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<FormDataType>({ title: '', description: '' });
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Image crop states
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -92,8 +96,8 @@ export const Categories: React.FC = () => {
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
     setFormData({ title: category.title, description: category.description || '' });
-    setImageFile(null); // user can choose new image
-    setImagePreview(null);
+    setImageFile(null);
+    setImagePreview(category.image?.url || null);
     setIsModalOpen(true);
   };
 
@@ -104,16 +108,16 @@ export const Categories: React.FC = () => {
       const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           ...AuthService.getAuthHeaders(),
         },
       });
-
-      const data = await response.json();
 
       if (response.ok) {
         toast.success('Category deleted successfully');
         fetchCategories();
       } else {
+        const data = await response.json();
         toast.error(data.error || 'Failed to delete category');
       }
     } catch (error) {
@@ -204,7 +208,7 @@ export const Categories: React.FC = () => {
       const response = await fetch(url, {
         method,
         headers: {
-          ...AuthService.getAuthHeaders(), // 🔑 don't set Content-Type here, browser will set it
+          ...AuthService.getAuthHeaders(),
         },
         body: payload,
       });
@@ -227,6 +231,16 @@ export const Categories: React.FC = () => {
     }
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCategories = categories.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
   return (
     <div className="space-y-6 p-6">
       <Toaster position="top-right" />
@@ -246,35 +260,77 @@ export const Categories: React.FC = () => {
         ) : categories.length === 0 ? (
           <p className="p-6 text-gray-500">No categories found.</p>
         ) : (
-          <Table headers={['Image', 'Title', 'Description', 'Actions']}>
-            {categories.map((category) => (
-              <tr key={category._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm">
-                  {category.image?.url ? (
-                    <img
-                      src={category.image.url}
-                      alt={category.title}
-                      className="h-12 w-12 object-cover rounded"
-                    />
-                  ) : (
-                    <span className="text-gray-400">No Image</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-sm font-medium">{category.title}</td>
-                <td className="px-6 py-4 text-sm">{category.description}</td>
-                <td className="px-6 py-4">
-                  <div className="flex space-x-2">
-                    <button onClick={() => handleEdit(category)} className="text-blue-600 hover:text-blue-900">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDelete(category._id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </Table>
+          <>
+            <Table headers={['Image', 'Title', 'Description', 'Actions']}>
+              {currentCategories.map((category) => (
+                <tr key={category._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm">
+                    {category.image?.url ? (
+                      <img
+                        src={category.image.url}
+                        alt={category.title}
+                        className="h-12 w-12 object-cover rounded"
+                      />
+                    ) : (
+                      <span className="text-gray-400">No Image</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium">{category.title}</td>
+                  <td className="px-6 py-4 text-sm">{category.description}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex space-x-2">
+                      <button onClick={() => handleEdit(category)} className="text-blue-600 hover:text-blue-900">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => handleDelete(category._id)} className="text-red-600 hover:text-red-900">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t">
+                <div className="text-sm text-gray-700">
+                  Showing {startIndex + 1} to {Math.min(endIndex, categories.length)} of {categories.length} results
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => goToPage(page)}
+                      className="min-w-[2rem]"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

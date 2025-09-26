@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -9,7 +9,6 @@ import { AuthService } from '../services/auth';
 import toast, { Toaster } from 'react-hot-toast';
 
 const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
-
 
 interface ValidationResult {
   valid: boolean;
@@ -57,7 +56,6 @@ const validateProductForm = (data: any): ValidationResult => {
   return { valid: errors.length === 0, errors };
 };
 
-
 interface Product {
   _id: string;
   title: string;
@@ -80,6 +78,10 @@ export const Products: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   const [formData, setFormData] = useState<any>({
     title: '',
     price: '',
@@ -89,6 +91,7 @@ export const Products: React.FC = () => {
     description: '',
     aboutProduct: '',
     images: [] as File[],
+    existingImages: [] as string[],
     isFeatured: false,
     isTrending: false,
   });
@@ -163,47 +166,54 @@ export const Products: React.FC = () => {
 
   // ===================== Handle Add/Edit Submit =====================
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // Validate form
-  const { valid, errors } = validateProductForm(formData);
-  if (!valid) {
-    errors.forEach((err) => toast.error(err));
-    return;
-  }
-
-  const form = new FormData();
-  form.append('title', formData.title);
-  form.append('price', formData.price);
-  form.append('retailerPrice', formData.retailerPrice);
-  form.append('stock', formData.stock);
-  form.append('category', formData.category);
-  form.append('description', formData.description);
-  form.append('aboutProduct', formData.aboutProduct);
-  form.append('isFeatured', String(formData.isFeatured));
-  form.append('isTrending', String(formData.isTrending));
-  formData.images.forEach((file: File) => form.append('images', file));
-
-  const url = editingProduct
-    ? `${API_BASE_URL}/products/${editingProduct._id}`
-    : `${API_BASE_URL}/products`;
-  const method = editingProduct ? 'PUT' : 'POST';
-
-  try {
-    const headers = AuthService.getAuthHeaders();
-    const response = await fetch(url, { method, headers, body: form });
-    const data = await response.json();
-    if (response.ok) {
-      toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
-      fetchProducts(selectedCategory);
-      setIsModalOpen(false);
-    } else {
-      toast.error(data.error || 'Operation failed');
+    // Validate form
+    const { valid, errors } = validateProductForm(formData);
+    if (!valid) {
+      errors.forEach((err) => toast.error(err));
+      return;
     }
-  } catch {
-    toast.error('Network error, operation failed');
-  }
-};
+
+    const form = new FormData();
+    form.append('title', formData.title);
+    form.append('price', formData.price);
+    form.append('retailerPrice', formData.retailerPrice);
+    form.append('stock', formData.stock);
+    form.append('category', formData.category);
+    form.append('description', formData.description);
+    form.append('aboutProduct', formData.aboutProduct);
+    form.append('isFeatured', String(formData.isFeatured));
+    form.append('isTrending', String(formData.isTrending));
+    
+    // Add new images
+    formData.images.forEach((file: File) => form.append('images', file));
+    
+    // Add existing images to keep
+    if (editingProduct && formData.existingImages.length > 0) {
+      form.append('existingImages', JSON.stringify(formData.existingImages));
+    }
+
+    const url = editingProduct
+      ? `${API_BASE_URL}/products/${editingProduct._id}`
+      : `${API_BASE_URL}/products`;
+    const method = editingProduct ? 'PUT' : 'POST';
+
+    try {
+      const headers = AuthService.getAuthHeaders();
+      const response = await fetch(url, { method, headers, body: form });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(`Product ${editingProduct ? 'updated' : 'created'} successfully`);
+        fetchProducts(selectedCategory);
+        setIsModalOpen(false);
+      } else {
+        toast.error(data.error || 'Operation failed');
+      }
+    } catch {
+      toast.error('Network error, operation failed');
+    }
+  };
 
   // ===================== Add / Edit Product =====================
   const handleAdd = () => {
@@ -217,6 +227,7 @@ export const Products: React.FC = () => {
       description: '',
       aboutProduct: '',
       images: [],
+      existingImages: [],
       isFeatured: false,
       isTrending: false,
     });
@@ -234,6 +245,7 @@ export const Products: React.FC = () => {
       description: product.description || '',
       aboutProduct: product.aboutProduct || '',
       images: [],
+      existingImages: product.images || [],
       isFeatured: product.isFeatured || false,
       isTrending: product.isTrending || false,
     });
@@ -289,6 +301,27 @@ export const Products: React.FC = () => {
     }
   };
 
+  const removeNewImage = (index: number) => {
+    const newImages = [...formData.images];
+    newImages.splice(index, 1);
+    setFormData({ ...formData, images: newImages });
+  };
+
+  const removeExistingImage = (imageUrl: string) => {
+    const newExistingImages = formData.existingImages.filter((img: string) => img !== imageUrl);
+    setFormData({ ...formData, existingImages: newExistingImages });
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProducts = products.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
   return (
     <div className="space-y-6 p-6">
       <Toaster position="top-right" />
@@ -311,6 +344,7 @@ export const Products: React.FC = () => {
           value={selectedCategory}
           onChange={(e) => {
             setSelectedCategory(e.target.value);
+            setCurrentPage(1);
             fetchProducts(e.target.value);
           }}
           className="border px-3 py-2 rounded-md"
@@ -331,19 +365,28 @@ export const Products: React.FC = () => {
         <p className="text-gray-500">No products found.</p>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-          <Table headers={['Image', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Featured', 'Trending', 'Actions']}>
-            {products.map((product) => (
+          <Table headers={['Images', 'Title', 'Price', 'Retailer Price', 'Stock', 'Category', 'Featured', 'Trending', 'Actions']}>
+            {currentProducts.map((product) => (
               <tr key={product._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
                   {product.images?.length ? (
-                    <img src={product.images[0]} alt={product.title} className="h-12 w-12 object-cover rounded" />
+                    <div className="flex space-x-1">
+                      {product.images.slice(0, 3).map((img, idx) => (
+                        <img key={idx} src={img} alt={product.title} className="h-10 w-10 object-cover rounded" />
+                      ))}
+                      {product.images.length > 3 && (
+                        <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center text-xs">
+                          +{product.images.length - 3}
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <span className="text-gray-400">No Image</span>
+                    <span className="text-gray-400">No Images</span>
                   )}
                 </td>
                 <td className="px-6 py-4 font-medium">{product.title}</td>
-                <td className="px-6 py-4">${product.price}</td>
-                <td className="px-6 py-4 text-green-600 font-medium">${product.retailerPrice}</td>
+                <td className="px-6 py-4">₹{product.price}</td>
+                <td className="px-6 py-4 text-green-600 font-medium">₹{product.retailerPrice}</td>
                 <td className="px-6 py-4">{product.stock}</td>
                 <td className="px-6 py-4">{product.category?.title}</td>
                 <td className="px-6 py-4">{product.isFeatured ? 'Yes' : 'No'}</td>
@@ -361,6 +404,46 @@ export const Products: React.FC = () => {
               </tr>
             ))}
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-gray-700">
+                Showing {startIndex + 1} to {Math.min(endIndex, products.length)} of {products.length} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => goToPage(page)}
+                    className="min-w-[2rem]"
+                  >
+                    {page}
+                  </Button>
+                ))}
+                
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -408,11 +491,46 @@ export const Products: React.FC = () => {
           <div>
             <label className="block text-sm font-medium mb-2">Upload Images</label>
             <input type="file" accept="image/*" onChange={handleFileChange} className="w-full border px-3 py-2 rounded-md" />
+            
+            {/* Existing Images */}
+            {editingProduct && formData.existingImages.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm font-medium mb-2">Current Images:</p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.existingImages.map((imageUrl: string, i: number) => (
+                    <div key={i} className="relative">
+                      <img src={imageUrl} alt="existing" className="h-16 w-16 object-cover rounded" />
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(imageUrl)}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* New Images */}
             {formData.images.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.images.map((file: File, i: number) => (
-                  <img key={i} src={URL.createObjectURL(file)} alt="preview" className="h-16 w-16 object-cover rounded" />
-                ))}
+              <div className="mt-2">
+                <p className="text-sm font-medium mb-2">New Images:</p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.images.map((file: File, i: number) => (
+                    <div key={i} className="relative">
+                      <img src={URL.createObjectURL(file)} alt="preview" className="h-16 w-16 object-cover rounded" />
+                      <button
+                        type="button"
+                        onClick={() => removeNewImage(i)}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

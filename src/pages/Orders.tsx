@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, Filter } from 'lucide-react';
+import { Eye, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Table } from '../components/ui/Table';
 import { Modal } from '../components/ui/Modal';
@@ -42,10 +42,8 @@ export const Orders: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeFilter, setActiveFilter] = useState<'All' | 'Today' | 'This Week' | 'This Month'>('All');
   const [loading, setLoading] = useState(false);
-
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const ordersPerPage = 10;
+  const [itemsPerPage] = useState(10);
 
   const filters: typeof activeFilter[] = ['All', 'Today', 'This Week', 'This Month'];
   const statusOptions = ['placed', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -130,11 +128,14 @@ export const Orders: React.FC = () => {
   });
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * ordersPerPage,
-    currentPage * ordersPerPage
-  );
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -165,7 +166,7 @@ export const Orders: React.FC = () => {
             size="sm"
             onClick={() => {
               setActiveFilter(filter);
-              setCurrentPage(1); // reset to page 1 on filter change
+              setCurrentPage(1);
             }}
             className="flex items-center"
           >
@@ -202,26 +203,45 @@ export const Orders: React.FC = () => {
             ))}
           </Table>
 
-          {/* ✅ Pagination below the table */}
-          <div className="flex justify-between items-center p-4 border-t">
-            <Button
-              size="sm"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            >
-              Next
-            </Button>
-          </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-gray-700">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => goToPage(page)}
+                    className="min-w-[2rem]"
+                  >
+                    {page}
+                  </Button>
+                ))}
+                
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
