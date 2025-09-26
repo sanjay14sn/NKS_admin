@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, CreditCard as Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Cropper, { Area } from 'react-easy-crop';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
