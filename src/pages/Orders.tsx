@@ -86,7 +86,7 @@ export const Orders: React.FC = () => {
     try {
       const headers = { ...AuthService.getAuthHeaders(), 'Content-Type': 'application/json' };
       const res = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers,
         body: JSON.stringify({ status: newStatus }),
       });
