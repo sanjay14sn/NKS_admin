@@ -1,23 +1,21 @@
 const API_BASE_URL = 'https://nks-backend-mou5.onrender.com/api';
 
 export interface LoginCredentials {
-  phone: string;   // ✅ changed from email
+  phone: string;
   password: string;
 }
-
 
 export interface AuthResponse {
   success: boolean;
   token?: string;
   user?: {
     id: string;
-    phone: string;  // ✅ should match backend
+    phone: string;
     name: string;
     role: string;
   };
   message?: string;
 }
-
 
 export class AuthService {
   private static TOKEN_KEY = 'nks_auth_token';
@@ -36,7 +34,6 @@ export class AuthService {
       const data = await response.json();
 
       if (response.ok && data.token) {
-        // Store token securely in localStorage
         this.setToken(data.token);
         if (data.user) {
           this.setUser(data.user);
@@ -54,6 +51,7 @@ export class AuthService {
   static logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
+    window.location.href = '/login';
   }
 
   static getToken(): string | null {
@@ -80,5 +78,22 @@ export class AuthService {
   static getAuthHeaders(): Record<string, string> {
     const token = this.getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  static async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const headers = {
+      ...options.headers,
+      ...this.getAuthHeaders(),
+      'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401) {
+      this.logout();
+      throw new Error('Session expired. Please login again.');
+    }
+
+    return response;
   }
 }
